@@ -39,7 +39,7 @@ private:
 
 	static std::shared_ptr<Logger> loggerInstance;
 
-	void LogMessage(const std::string& message);
+	void logMessage(const std::string& message);
 
 };
 
