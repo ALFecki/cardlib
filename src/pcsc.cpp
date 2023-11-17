@@ -13,7 +13,7 @@ PCSC::PCSC() {
 }
 
 
-int PCSC::init_pcsc() {
+int PCSC::initPCSC() {
     LONG result;
 
     result = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL, &this->hContext);
@@ -46,6 +46,21 @@ int PCSC::init_pcsc() {
             pioSendPci = *SCARD_PCI_T1;
             break;
     }
+    logger->log(__FILE__, __LINE__, "Successful pcsc intialization", LogLevel::INFO);
     return 0;
+}
 
+
+int PCSC::checkReaderStatus() {
+    DWORD dwAtrLen = sizeof(this->pbAtr);
+    LONG result = SCardStatus(this->hCard, 
+                        this->mszReaders, 
+                        &this->dwReaders,
+                        &this->dwReaderState, 
+                        &this->dwActiveProtocol, 
+                        this->pbAtr, 
+                        &dwAtrLen);
+    logger->log(__FILE__, __LINE__, "Successful pcsc intialization", LogLevel::INFO);
+    CHECK("SCardStatus", result);
+    return result;
 }

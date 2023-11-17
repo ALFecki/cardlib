@@ -12,15 +12,18 @@ class PCSC {
 public:
 
     PCSC();
-    int init_pcsc();
+    int initPCSC();
+    int checkReaderStatus();
+    
 
 private:
 
     SCARDCONTEXT hContext;
     LPTSTR mszReaders;
-    DWORD dwReaders, dwActiveProtocol;
+    DWORD dwReaders, dwActiveProtocol, dwReaderState;
     SCARDHANDLE hCard;
     SCARD_IO_REQUEST pioSendPci;
+    BYTE pbAtr[MAX_ATR_SIZE];
 
 };
 
