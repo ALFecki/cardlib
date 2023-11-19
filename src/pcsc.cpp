@@ -67,9 +67,13 @@ int PCSC::checkReaderStatus() {
 
 std::vector<octet> PCSC::sendCommandToCard(std::vector<octet> cmd) {
     LONG result;
-    octet* response;
+    octet* response = new octet[2048];
     size_t responseLength;
-    result = SCardTransmit(hCard, &this->pioSendPci, cmd.data(), cmd.size(), NULL, response, &responseLength);
+    for (size_t i = 0; i < cmd.size(); i++) {
+        std::cout << cmd[i] << ',';
+    }
+    result = SCardTransmit(
+        this->hCard, &this->pioSendPci, cmd.data(), cmd.size(), NULL, response, &responseLength);
     // проверка
 
     return std::vector<octet>(response, response + responseLength);

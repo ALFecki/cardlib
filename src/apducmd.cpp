@@ -3,7 +3,7 @@
 // auto logger = Logger::getInstance();
 
 std::vector<octet> APDU::derEncode(u32 tag, const std::vector<octet>& data) {
-    octet* apduCmd;
+    octet* apduCmd = new octet[2048];
     auto count = derEnc(apduCmd, 0x82, data.data(), data.size());
     if (count == SIZE_MAX) {
         // log->log(__FILE__, __LINE__, "Error der encode", LogLevel::ERROR);

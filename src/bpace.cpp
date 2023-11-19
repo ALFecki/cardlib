@@ -27,7 +27,6 @@ int Bpace::bPACEStart(std::string pwd) {
     return code;
 }
 
-
 std::vector<octet> Bpace::createAPDUCmd(octet cmd, std::vector<octet>& data) {
     int dataSize = data.size();
 
@@ -35,15 +34,22 @@ std::vector<octet> Bpace::createAPDUCmd(octet cmd, std::vector<octet>& data) {
         logger->log(__FILE__, __LINE__, "Cannot execute message1, data is too long", LogLevel::ERROR);
         return std::vector<octet>();
     }
-    apdu_cmd_t* apduCmd = new apdu_cmd_t();
+    octet stack[2048];
+    apdu_cmd_t* apduCmd = (apdu_cmd_t*)stack;
     apduCmd->cla = 0x00;
     apduCmd->ins = cmd;
     apduCmd->p1 = 0x00;
     apduCmd->p2 = 0x00;
-    std::move(data.begin(), data.end(), apduCmd->cdf);
-    octet apdu[apduCmdEnc(0, apduCmd)];
-    apduCmdEnc(apdu, apduCmd);
-    return std::vector<octet>(apdu, apdu + sizeof(apdu) / sizeof(octet));
+    apduCmd->cdf_len = data.size();
+    apduCmd->rdf_len = 256;
+
+    memCopy(apduCmd->cdf, data.data(), apduCmd->cdf_len);
+
+    size_t apduSize = apduCmdEnc(0, apduCmd);
+    std::vector<octet> apdu(apduSize);
+    apduCmdEnc(&apdu[0], apduCmd);
+
+    return apdu;
 }
 
 std::vector<octet> Bpace::createMessage1() {
@@ -52,7 +58,8 @@ std::vector<octet> Bpace::createMessage1() {
     err_t code = bakeBPACEStep2(this->out, this->state);
 
     if (code != ERR_OK) {
-        this->logger->log(__FILE__, __LINE__, "Error in step2 BPACE: " + std::to_string(code), LogLevel::ERROR);
+        this->logger->log(
+            __FILE__, __LINE__, "Error in step2 BPACE: " + std::to_string(code), LogLevel::ERROR);
         if (this->blob != nullptr) {
             blobClose(this->blob);
             this->blob = nullptr;
@@ -86,7 +93,8 @@ std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
     bakeBPACEStepGA(this->k0, this->k1, this->state);
 
     if (code != ERR_OK) {
-        this->logger->log(__FILE__, __LINE__, "Error in step4 BPACE: " + std::to_string(code), LogLevel::ERROR);
+        this->logger->log(
+            __FILE__, __LINE__, "Error in step4 BPACE: " + std::to_string(code), LogLevel::ERROR);
         if (this->blob != nullptr) {
             blobClose(this->blob);
             this->blob = nullptr;
@@ -139,9 +147,9 @@ std::vector<octet> Bpace::sendM3(std::vector<octet> message2) {
     return pcsc.sendCommandToCard(this->createMessage3(message2));
 }
 
-void Bpace::getKeys(octet *key0, octet *key1){
-    std::copy(this->k0, this->k0+32, key0);
-    std::copy(this->k1, this->k1+32, key1);
+void Bpace::getKeys(octet* key0, octet* key1) {
+    std::copy(this->k0, this->k0 + 32, key0);
+    std::copy(this->k1, this->k1 + 32, key1);
 }
 
 bool Bpace::authorize() {
@@ -158,7 +166,7 @@ bool Bpace::authorize() {
     }
 
     bool isAuthorized = lastAuthStep(M4);
-    if(isAuthorized){
+    if (isAuthorized) {
         octet k0[32], k1[32];
         this->getKeys(k0, k1);
         // this->sender->initSecureContext(k0, k1);
