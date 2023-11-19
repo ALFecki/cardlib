@@ -21,15 +21,18 @@
 
 class Bpace {
 public:
-    Bpace();
+    Bpace(std::string password);
 
     int bPACEStart(std::string password);
+    bool authorize();
+
     std::vector<octet> createMessage1();
     std::vector<octet> createMessage3(std::vector<octet> message2);
     std::vector<octet> sendM1();
     std::vector<octet> sendM3(std::vector<octet> message2);
     bool lastAuthStep(std::vector<octet> message3);
     std::vector<octet> createAPDUCmd(octet cmd, std::vector<octet>& data);
+    void getKeys(octet *key0, octet *key1);
 
 private:
     bign_params params{};

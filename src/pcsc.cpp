@@ -10,10 +10,13 @@
 
 PCSC::PCSC() {
     this->logger = Logger::getInstance();
+    this->logger->setLogOutput("CONSOLE");
+    this->logger->setLogLevel("INFO");
     this->initPCSC();
 }
 
 int PCSC::initPCSC() {
+    logger->log(__FILE__, __LINE__, "PCSC initialization started", LogLevel::INFO);
     LONG result;
 
     result = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL, &this->hContext);

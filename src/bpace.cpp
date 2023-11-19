@@ -2,8 +2,10 @@
 
 // auto logger = Logger::getInstance();
 
-Bpace::Bpace() {
+Bpace::Bpace(std::string password) {
     pcsc = PCSC();
+
+    auto status = this->bPACEStart(password);
 }
 
 int Bpace::bPACEStart(std::string pwd) {
@@ -24,6 +26,7 @@ int Bpace::bPACEStart(std::string pwd) {
 
     return code;
 }
+
 
 std::vector<octet> Bpace::createAPDUCmd(octet cmd, std::vector<octet>& data) {
     int dataSize = data.size();
@@ -134,4 +137,31 @@ std::vector<octet> Bpace::sendM1() {
 
 std::vector<octet> Bpace::sendM3(std::vector<octet> message2) {
     return pcsc.sendCommandToCard(this->createMessage3(message2));
+}
+
+void Bpace::getKeys(octet *key0, octet *key1){
+    std::copy(this->k0, this->k0+32, key0);
+    std::copy(this->k1, this->k1+32, key1);
+}
+
+bool Bpace::authorize() {
+    auto message2 = this->sendM1();
+    if (message2.empty()) {
+        this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 2", LogLevel::ERROR);
+        return false;
+    }
+
+    auto M4 = this->sendM3(message2);
+    if (M4.empty()) {
+        this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 2", LogLevel::ERROR);
+        return false;
+    }
+
+    bool isAuthorized = lastAuthStep(M4);
+    if(isAuthorized){
+        octet k0[32], k1[32];
+        this->getKeys(k0, k1);
+        // this->sender->initSecureContext(k0, k1);
+    }
+    return true;
 }
