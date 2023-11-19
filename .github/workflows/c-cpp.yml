@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: CardLib CI
 
 on:
   push:
@@ -8,14 +8,9 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
-    - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+    - name: build lib
+      run: cmake --build build/ --config Debug --target cardlib
