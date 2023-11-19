@@ -13,4 +13,4 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: build lib
-      run: cmake --build build/ --config Debug --target cardlib
+      run: mkdir build && cmake --build build/ --config Debug --target cardlib
