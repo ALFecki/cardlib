@@ -19,10 +19,11 @@ public:
     Bpace(octet pass, octet helloa, octet hellob);
     
     int bPACEStart(std::string password);
-    std::vector<octet> getM1();
-    std::vector<octet> getM3(std::vector<octet> message2);
+    std::vector<octet> createMessage1();
+    std::vector<octet> createMessage3(std::vector<octet> message2);
     std::vector<octet> sendM1();
     std::vector<octet> sendM3(std::vector<octet> message2);
+    bool lastAuthStep(std::vector<octet> message3);
 
 
 private:

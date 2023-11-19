@@ -26,7 +26,7 @@ int Bpace::bPACEStart(std::string pwd) {
     return code;
 }
 
-std::vector<octet> Bpace::getM1() {
+std::vector<octet> Bpace::createMessage1() {
     std::vector<octet> message1;
 
     err_t code = bakeBPACEStep2(this->out, this->state);
@@ -56,8 +56,8 @@ std::vector<octet> Bpace::getM1() {
 
 }
 
-std::vector<octet> Bpace::getM3(std::vector<octet> message2) {
-    std::vector<unsigned char> message3;
+std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
+    std::vector<octet> message3;
     size_t decodedSize;
     derDec2(&this->in, &decodedSize, message2.data(), message2.size(), 0x81);
 
@@ -91,13 +91,38 @@ std::vector<octet> Bpace::getM3(std::vector<octet> message2) {
 }
 
 
+bool Bpace::lastAuthStep(std::vector<octet> message3) {
+    octet* decoded;
+    size_t decodedLength;
+    derDec2(&decoded, &decodedLength, message3.data(), message3.size(), 0x83);
+    // std::vector<octet> tmp{M4.begin() + 1, M4.end()};
+    int err = bakeBPACEStep6(decoded, this->state);
+    if (err != ERR_OK) {
+        logger->log(__FILE__, __LINE__, "Error in last step BPACE: " + std::to_string(err), LogLevel::ERROR);
+        // this->isAuthorized = false;
+    }
+    else {
+        // this->isAuthorized = true;
+    }
+
+    bakeBPACEStepGA(this->k0, this->k1, this->state);
+
+    if (this->blob != nullptr) {
+        blobClose(this->blob);
+        this->blob = nullptr;
+    }
+
+    return true;
+}
+
+
 std::vector<octet> Bpace::sendM1() {
-    return pcsc.sendCommandToCard(this->getM1());
+    return pcsc.sendCommandToCard(this->createMessage1());
 }
 
 
 std::vector<octet> Bpace::sendM3(std::vector<octet> message2) {
-    return pcsc.sendCommandToCard(this->getM3(message2));
+    return pcsc.sendCommandToCard(this->createMessage3(message2));
 }
 
 
