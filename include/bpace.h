@@ -21,7 +21,7 @@
 
 class Bpace {
 public:
-    Bpace(octet pass, octet helloa, octet hellob);
+    Bpace();
 
     int bPACEStart(std::string password);
     std::vector<octet> createMessage1();
@@ -49,11 +49,11 @@ private:
                               .rng = prngEchoStepR,
                               .rng_state = echo};
 
-    octet password;
-    octet helloa;
-    octet hellob;
-
     PCSC pcsc;
+
+
+    std::shared_ptr<Logger> logger;
+
 };
 
 #endif

@@ -6,9 +6,10 @@
         return -1;               \
     }
 
-auto logger = Logger::getInstance();
+// auto logger = Logger::getInstance();
 
 PCSC::PCSC() {
+    this->logger = Logger::getInstance();
     this->initPCSC();
 }
 
@@ -43,7 +44,7 @@ int PCSC::initPCSC() {
             this->pioSendPci = *SCARD_PCI_T1;
             break;
     }
-    logger->log(__FILE__, __LINE__, "Successful pcsc intialization", LogLevel::INFO);
+    logger->log(__FILE__, __LINE__, "Successful pcsc initialization", LogLevel::INFO);
     return 0;
 }
 

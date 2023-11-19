@@ -24,6 +24,9 @@ private:
     SCARDHANDLE hCard;
     SCARD_IO_REQUEST pioSendPci;
     BYTE pbAtr[MAX_ATR_SIZE];
+
+    std::shared_ptr<Logger> logger;
+
 };
 
 #endif

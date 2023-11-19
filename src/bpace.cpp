@@ -1,8 +1,8 @@
 #include <bpace.h>
 
-auto logger = Logger::getInstance();
+// auto logger = Logger::getInstance();
 
-Bpace::Bpace(octet pass, octet helloa, octet hellob) {
+Bpace::Bpace() {
     pcsc = PCSC();
 }
 
@@ -49,7 +49,7 @@ std::vector<octet> Bpace::createMessage1() {
     err_t code = bakeBPACEStep2(this->out, this->state);
 
     if (code != ERR_OK) {
-        logger->log(__FILE__, __LINE__, "Error in step2 BPACE: " + std::to_string(code), LogLevel::ERROR);
+        this->logger->log(__FILE__, __LINE__, "Error in step2 BPACE: " + std::to_string(code), LogLevel::ERROR);
         if (this->blob != nullptr) {
             blobClose(this->blob);
             this->blob = nullptr;
@@ -83,7 +83,7 @@ std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
     bakeBPACEStepGA(this->k0, this->k1, this->state);
 
     if (code != ERR_OK) {
-        logger->log(__FILE__, __LINE__, "Error in step4 BPACE: " + std::to_string(code), LogLevel::ERROR);
+        this->logger->log(__FILE__, __LINE__, "Error in step4 BPACE: " + std::to_string(code), LogLevel::ERROR);
         if (this->blob != nullptr) {
             blobClose(this->blob);
             this->blob = nullptr;
@@ -135,5 +135,3 @@ std::vector<octet> Bpace::sendM1() {
 std::vector<octet> Bpace::sendM3(std::vector<octet> message2) {
     return pcsc.sendCommandToCard(this->createMessage3(message2));
 }
-
-

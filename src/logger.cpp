@@ -2,6 +2,8 @@
 
 std::shared_ptr<Logger> Logger::loggerInstance;
 
+// auto logger = Logger::getInstance();
+
 void Logger::setLogPreferences(std::string logFileName = "",
                                LogLevel level = LogLevel::ERROR,
                                LogOutput output = LogOutput::CONSOLE) {

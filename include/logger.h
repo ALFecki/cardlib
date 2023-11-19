@@ -31,4 +31,6 @@ private:
     void logMessage(const std::string& message);
 };
 
+// auto logger = Logger::getInstance();
+
 #endif
