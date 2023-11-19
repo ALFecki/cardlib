@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <logger.h>
+#include <pcsc.h>
 
 class Bpace {
 
@@ -19,8 +20,9 @@ public:
     
     int bPACEStart(std::string password);
     std::vector<octet> getM1();
+    std::vector<octet> getM3(std::vector<octet> message2);
     std::vector<octet> sendM1();
-
+    std::vector<octet> sendM3(std::vector<octet> message2);
 
 
 private:
@@ -29,6 +31,8 @@ private:
     blob_t blob{};
     octet *in{}, *out{};
     void *state{};
+
+    octet k0[32]{}, k1[32]{};
 
 
     bake_settings settings = {
@@ -45,4 +49,6 @@ private:
     octet password;
     octet helloa;
     octet hellob;
+
+    PCSC pcsc;
 };

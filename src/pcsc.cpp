@@ -9,7 +9,7 @@
 auto logger = Logger::getInstance();
 
 PCSC::PCSC() {
-
+    this->initPCSC();
 }
 
 
@@ -64,7 +64,6 @@ int PCSC::checkReaderStatus() {
     CHECK("SCardStatus", result);
     return result;
 }
-
 
 
 std::vector<octet> PCSC::sendCommandToCard(std::vector<octet> cmd) {

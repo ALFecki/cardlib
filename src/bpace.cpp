@@ -3,7 +3,7 @@
 auto logger = Logger::getInstance();
 
 Bpace::Bpace(octet pass, octet helloa, octet hellob) {
-
+    pcsc = PCSC();
 }
 
 
@@ -43,7 +43,7 @@ std::vector<octet> Bpace::getM1() {
     std::copy(this->out, this->out + (this->params.l / 8), back_inserter(message1));
     auto apdu = createAPDUCmd(0x86, message1);
     octet* apduCmd;
-    auto count  = derEnc(apduCmd, 0x80, apdu.data(), apdu.size());
+    auto count  = derEnc(apduCmd, 0x80, apdu.data(), apdu.size()); // derEnc 0x7c
     if (count == SIZE_MAX) {
         logger->log(__FILE__, __LINE__, "Error in step2 BPACE: der encode", LogLevel::ERROR);
         if (this->blob != nullptr) {
@@ -56,8 +56,48 @@ std::vector<octet> Bpace::getM1() {
 
 }
 
-std::vector<octet> Bpace::sendM1() {
+std::vector<octet> Bpace::getM3(std::vector<octet> message2) {
+    std::vector<unsigned char> message3;
+    size_t decodedSize;
+    derDec2(&this->in, &decodedSize, message2.data(), message2.size(), 0x81);
 
+    prngEchoStart(this->echo, this->params.seed, 8);
+    int code = bakeBPACEStep4(this->out, this->in, this->state);
+
+    bakeBPACEStepGA(this->k0, this->k1, this->state);
+
+    if (code != ERR_OK) {
+        logger->log(__FILE__, __LINE__, "Error in step4 BPACE: " + std::to_string(code), LogLevel::ERROR);
+        if (this->blob != nullptr) {
+            blobClose(this->blob);
+            this->blob = nullptr;
+        }
+        return message3;
+    }
+
+    std::copy(this->out, this->out + (this->params.l / 2) + 8, back_inserter(message3));
+    auto apdu = createAPDUCmd(0x86, message3);
+    octet* apduCmd;
+    auto count  = derEnc(apduCmd, 0x82, apdu.data(), apdu.size()); // derEnc 0x7c
+    if (count == SIZE_MAX) {
+        logger->log(__FILE__, __LINE__, "Error in step2 BPACE: der encode", LogLevel::ERROR);
+        if (this->blob != nullptr) {
+            blobClose(this->blob);
+            this->blob = nullptr;
+        }
+        return message3;
+    }
+    return std::vector<octet>(apduCmd, apduCmd + count);
+}
+
+
+std::vector<octet> Bpace::sendM1() {
+    return pcsc.sendCommandToCard(this->getM1());
+}
+
+
+std::vector<octet> Bpace::sendM3(std::vector<octet> message2) {
+    return pcsc.sendCommandToCard(this->getM3(message2));
 }
 
 
