@@ -41,7 +41,7 @@ std::vector<unsigned char> Bpace::getM1() {
     }
 
     std::copy(this->out, this->out + (this->params.l / 8), back_inserter(message1));
-
+    return createAPDUCmd(0x86, message1);
 
 }
 
@@ -51,13 +51,13 @@ std::vector<unsigned char> createAPDUCmd(unsigned char cmd, std::vector<unsigned
     if (dataSize > 255) {
         logger->log(__FILE__, __LINE__, "Cannot execute message1, data is too long", LogLevel::ERROR);
         return std::vector<unsigned char>();
-    } else {
-        apdu_cmd_t* apduCmd = new apdu_cmd_t();
-        apduCmd->cla = 0x00; apduCmd->ins = cmd; apduCmd->p1 = 0x00; apduCmd->p2 = 0x00;
-        
-        // apduCmd->cdf = reinterpret_cast<octet*>(data.data());
-        
     }
+    apdu_cmd_t* apduCmd = new apdu_cmd_t();
+    apduCmd->cla = 0x00; apduCmd->ins = cmd; apduCmd->p1 = 0x00; apduCmd->p2 = 0x00;
+    std::move(data.begin(), data.end(), back_inserter(apduCmd->cdf));
+    octet apdu[apduCmdEnc(0, apduCmd)];
+    apduCmdEnc(apdu, apduCmd);
+    return std::vector<octet>(apdu, apdu + sizeof(apdu) / sizeof(octet));
 }
 
 

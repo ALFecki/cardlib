@@ -2,8 +2,10 @@
 #include <bee2/crypto/bign.h>
 #include <bee2/crypto/bake.h>
 #include <bee2/core/apdu.h>
+#include <bee2/core/mem.h>
 #include <bee2/core/prng.h>
 #include <bee2/core/blob.h>
+#include <iterator>
 #include <string>
 #include <vector>
 #include <logger.h>
