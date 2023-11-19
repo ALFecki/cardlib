@@ -31,31 +31,29 @@ void Logger::log(std::string codeFile,
                  int codeLine,
                  std::string message,
                  LogLevel messageLevel = LogLevel::DEBUG) {
-    if (messageLevel <= this->logLevel) {
-        std::string logType;
-        // Set Log Level Name
-        switch (messageLevel) {
-            case LogLevel::DEBUG:
-                logType = "DEBUG: ";
-                break;
-            case LogLevel::INFO:
-                logType = "INFO: ";
-                break;
-            case LogLevel::WARN:
-                logType = "WARN: ";
-                break;
-            case LogLevel::ERROR:
-                logType = "ERROR: ";
-                break;
-            default:
-                logType = "NONE: ";
-                break;
-        }
-        codeFile += " : " + std::to_string(codeLine) + " : ";
-        message = logType + codeFile + message;
-
-        logMessage(message);
+    std::string logType;
+    // Set Log Level Name
+    switch (messageLevel) {
+        case LogLevel::DEBUG:
+            logType = "DEBUG: ";
+            break;
+        case LogLevel::INFO:
+            logType = "INFO: ";
+            break;
+        case LogLevel::WARN:
+            logType = "WARN: ";
+            break;
+        case LogLevel::ERROR:
+            logType = "ERROR: ";
+            break;
+        default:
+            logType = "NONE: ";
+            break;
     }
+    codeFile += " : " + std::to_string(codeLine) + " : ";
+    message = logType + codeFile + message;
+
+    logMessage(message);
 }
 
 LogLevel Logger::setLogLevel(const std::string& logLevel) {
