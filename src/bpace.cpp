@@ -41,17 +41,17 @@ std::vector<octet> Bpace::createMessage1() {
 
     std::copy(this->out, this->out + (this->params.l / 8), back_inserter(message1));
     auto apdu = createAPDUCmd(0x86, message1);
-    octet* apduCmd;
-    auto count = derEnc(apduCmd, 0x80, apdu.data(), apdu.size());  // derEnc 0x7c
-    if (count == SIZE_MAX) {
-        logger->log(__FILE__, __LINE__, "Error in step2 BPACE: der encode", LogLevel::ERROR);
+    std::vector<octet> apduCmd;
+    try {
+        apduCmd = APDU::derEncode(0x7c, APDU::derEncode(0x80, apdu));
+    } catch (int code) {
         if (this->blob != nullptr) {
             blobClose(this->blob);
             this->blob = nullptr;
         }
         return message1;
     }
-    return std::vector<octet>(apduCmd, apduCmd + count);
+    return apduCmd;
 }
 
 std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
@@ -75,17 +75,17 @@ std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
 
     std::copy(this->out, this->out + (this->params.l / 2) + 8, back_inserter(message3));
     auto apdu = createAPDUCmd(0x86, message3);
-    octet* apduCmd;
-    auto count = derEnc(apduCmd, 0x82, apdu.data(), apdu.size());  // derEnc 0x7c
-    if (count == SIZE_MAX) {
-        logger->log(__FILE__, __LINE__, "Error in step2 BPACE: der encode", LogLevel::ERROR);
+    std::vector<octet> apduCmd;
+    try {
+        apduCmd = APDU::derEncode(0x7c, APDU::derEncode(0x82, apdu));
+    } catch (int code) {
         if (this->blob != nullptr) {
             blobClose(this->blob);
             this->blob = nullptr;
         }
         return message3;
     }
-    return std::vector<octet>(apduCmd, apduCmd + count);
+    return apduCmd;
 }
 
 bool Bpace::lastAuthStep(std::vector<octet> message3) {

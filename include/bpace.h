@@ -9,8 +9,11 @@
 #include <bee2/crypto/bake.h>
 #include <bee2/crypto/bign.h>
 #include <bee2/defs.h>
+
+#include <apducmd.h>
 #include <logger.h>
 #include <pcsc.h>
+
 
 #include <iterator>
 #include <string>
