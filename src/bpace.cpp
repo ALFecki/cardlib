@@ -6,14 +6,13 @@ Bpace::Bpace(octet pass, octet helloa, octet hellob) {
     pcsc = PCSC();
 }
 
-
 int Bpace::bPACEStart(std::string pwd) {
     bignParamsStd(&this->params, "1.2.112.0.2.0.34.101.45.3.1");
     prngEchoStart(this->echo, this->params.seed, 8);
 
     this->blob = blobCreate(9 * this->params.l / 8 + 8 + bakeBPACE_keep(this->params.l));
 
-    this->in = (octet *) this->blob;
+    this->in = (octet*)this->blob;
     this->out = this->in + 5 * this->params.l / 8;
     this->state = this->out + this->params.l / 2 + 8;
 
@@ -43,7 +42,7 @@ std::vector<octet> Bpace::createMessage1() {
     std::copy(this->out, this->out + (this->params.l / 8), back_inserter(message1));
     auto apdu = createAPDUCmd(0x86, message1);
     octet* apduCmd;
-    auto count  = derEnc(apduCmd, 0x80, apdu.data(), apdu.size()); // derEnc 0x7c
+    auto count = derEnc(apduCmd, 0x80, apdu.data(), apdu.size());  // derEnc 0x7c
     if (count == SIZE_MAX) {
         logger->log(__FILE__, __LINE__, "Error in step2 BPACE: der encode", LogLevel::ERROR);
         if (this->blob != nullptr) {
@@ -53,7 +52,6 @@ std::vector<octet> Bpace::createMessage1() {
         return message1;
     }
     return std::vector<octet>(apduCmd, apduCmd + count);
-
 }
 
 std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
@@ -78,7 +76,7 @@ std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
     std::copy(this->out, this->out + (this->params.l / 2) + 8, back_inserter(message3));
     auto apdu = createAPDUCmd(0x86, message3);
     octet* apduCmd;
-    auto count  = derEnc(apduCmd, 0x82, apdu.data(), apdu.size()); // derEnc 0x7c
+    auto count = derEnc(apduCmd, 0x82, apdu.data(), apdu.size());  // derEnc 0x7c
     if (count == SIZE_MAX) {
         logger->log(__FILE__, __LINE__, "Error in step2 BPACE: der encode", LogLevel::ERROR);
         if (this->blob != nullptr) {
@@ -90,7 +88,6 @@ std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
     return std::vector<octet>(apduCmd, apduCmd + count);
 }
 
-
 bool Bpace::lastAuthStep(std::vector<octet> message3) {
     octet* decoded;
     size_t decodedLength;
@@ -100,8 +97,7 @@ bool Bpace::lastAuthStep(std::vector<octet> message3) {
     if (err != ERR_OK) {
         logger->log(__FILE__, __LINE__, "Error in last step BPACE: " + std::to_string(err), LogLevel::ERROR);
         // this->isAuthorized = false;
-    }
-    else {
+    } else {
         // this->isAuthorized = true;
     }
 
@@ -115,18 +111,15 @@ bool Bpace::lastAuthStep(std::vector<octet> message3) {
     return true;
 }
 
-
 std::vector<octet> Bpace::sendM1() {
     return pcsc.sendCommandToCard(this->createMessage1());
 }
-
 
 std::vector<octet> Bpace::sendM3(std::vector<octet> message2) {
     return pcsc.sendCommandToCard(this->createMessage3(message2));
 }
 
-
-std::vector<octet> createAPDUCmd(octet cmd, std::vector<octet> &data) {
+std::vector<octet> createAPDUCmd(octet cmd, std::vector<octet>& data) {
     int dataSize = data.size();
 
     if (dataSize > 255) {
@@ -134,11 +127,12 @@ std::vector<octet> createAPDUCmd(octet cmd, std::vector<octet> &data) {
         return std::vector<octet>();
     }
     apdu_cmd_t* apduCmd = new apdu_cmd_t();
-    apduCmd->cla = 0x00; apduCmd->ins = cmd; apduCmd->p1 = 0x00; apduCmd->p2 = 0x00;
+    apduCmd->cla = 0x00;
+    apduCmd->ins = cmd;
+    apduCmd->p1 = 0x00;
+    apduCmd->p2 = 0x00;
     std::move(data.begin(), data.end(), apduCmd->cdf);
     octet apdu[apduCmdEnc(0, apduCmd)];
     apduCmdEnc(apdu, apduCmd);
     return std::vector<octet>(apdu, apdu + sizeof(apdu) / sizeof(octet));
 }
-
-
