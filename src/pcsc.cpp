@@ -39,11 +39,11 @@ int PCSC::initPCSC() {
 
     switch (dwActiveProtocol) {
         case SCARD_PROTOCOL_T0:
-            pioSendPci = *SCARD_PCI_T0;
+            this->pioSendPci = *SCARD_PCI_T0;
             break;
 
         case SCARD_PROTOCOL_T1:
-            pioSendPci = *SCARD_PCI_T1;
+            this->pioSendPci = *SCARD_PCI_T1;
             break;
     }
     logger->log(__FILE__, __LINE__, "Successful pcsc intialization", LogLevel::INFO);
@@ -63,4 +63,25 @@ int PCSC::checkReaderStatus() {
     logger->log(__FILE__, __LINE__, "Successful pcsc intialization", LogLevel::INFO);
     CHECK("SCardStatus", result);
     return result;
+}
+
+
+
+std::vector<octet> PCSC::sendCommandToCard(std::vector<octet> cmd) {
+    LONG result;
+    octet* response;
+    size_t responseLength;
+    result = SCardTransmit(
+        hCard,
+        &this->pioSendPci,
+        cmd.data(),
+        cmd.size(),
+        NULL,
+        response,
+        &responseLength
+    );
+    // проверка
+
+    return std::vector<octet> (response, response + responseLength);
+    
 }

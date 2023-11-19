@@ -5,6 +5,7 @@
 #include <bee2/core/mem.h>
 #include <bee2/core/prng.h>
 #include <bee2/core/blob.h>
+#include <bee2/core/der.h>
 #include <iterator>
 #include <string>
 #include <vector>
@@ -17,7 +18,8 @@ public:
     Bpace(octet pass, octet helloa, octet hellob);
     
     int bPACEStart(std::string password);
-    std::vector<unsigned char> getM1();
+    std::vector<octet> getM1();
+    std::vector<octet> sendM1();
 
 
 

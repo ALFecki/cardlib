@@ -2,7 +2,9 @@
 #define PCSC_H
 
 #include <PCSC/winscard.h>
+#include <bee2/defs.h>
 #include <cstddef>
+#include <vector>
 #include <stdio.h>
 #include <logger.h>
 
@@ -15,6 +17,8 @@ public:
     int initPCSC();
     int checkReaderStatus();
     
+    std::vector<octet> sendCommandToCard(std::vector<octet> cmd);
+
 
 private:
 

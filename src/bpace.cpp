@@ -26,8 +26,8 @@ int Bpace::bPACEStart(std::string pwd) {
     return code;
 }
 
-std::vector<unsigned char> Bpace::getM1() {
-    std::vector<unsigned char> message1;
+std::vector<octet> Bpace::getM1() {
+    std::vector<octet> message1;
 
     err_t code = bakeBPACEStep2(this->out, this->state);
 
@@ -41,20 +41,36 @@ std::vector<unsigned char> Bpace::getM1() {
     }
 
     std::copy(this->out, this->out + (this->params.l / 8), back_inserter(message1));
-    return createAPDUCmd(0x86, message1);
+    auto apdu = createAPDUCmd(0x86, message1);
+    octet* apduCmd;
+    auto count  = derEnc(apduCmd, 0x80, apdu.data(), apdu.size());
+    if (count == SIZE_MAX) {
+        logger->log(__FILE__, __LINE__, "Error in step2 BPACE: der encode", LogLevel::ERROR);
+        if (this->blob != nullptr) {
+            blobClose(this->blob);
+            this->blob = nullptr;
+        }
+        return message1;
+    }
+    return std::vector<octet>(apduCmd, apduCmd + count);
 
 }
 
-std::vector<unsigned char> createAPDUCmd(unsigned char cmd, std::vector<unsigned char> &data) {
+std::vector<octet> Bpace::sendM1() {
+
+}
+
+
+std::vector<octet> createAPDUCmd(octet cmd, std::vector<octet> &data) {
     int dataSize = data.size();
 
     if (dataSize > 255) {
         logger->log(__FILE__, __LINE__, "Cannot execute message1, data is too long", LogLevel::ERROR);
-        return std::vector<unsigned char>();
+        return std::vector<octet>();
     }
     apdu_cmd_t* apduCmd = new apdu_cmd_t();
     apduCmd->cla = 0x00; apduCmd->ins = cmd; apduCmd->p1 = 0x00; apduCmd->p2 = 0x00;
-    std::move(data.begin(), data.end(), back_inserter(apduCmd->cdf));
+    std::move(data.begin(), data.end(), apduCmd->cdf);
     octet apdu[apduCmdEnc(0, apduCmd)];
     apduCmdEnc(apdu, apduCmd);
     return std::vector<octet>(apdu, apdu + sizeof(apdu) / sizeof(octet));
