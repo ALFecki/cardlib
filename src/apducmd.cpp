@@ -15,5 +15,9 @@ std::vector<octet> APDU::derEncode(u32 tag, const std::vector<octet>& data) {
 
 
 std::vector<octet> APDU::derDecode(u32 tag, octet* data, size_t len) {
-    
+    const octet* decoded;
+    size_t decodedSize;
+    auto count = derDec2(&decoded, &decodedSize, data, len, tag);
+
+    return std::vector<octet>(decoded, decoded + count);
 }

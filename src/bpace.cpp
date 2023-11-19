@@ -25,6 +25,24 @@ int Bpace::bPACEStart(std::string pwd) {
     return code;
 }
 
+std::vector<octet> Bpace::createAPDUCmd(octet cmd, std::vector<octet>& data) {
+    int dataSize = data.size();
+
+    if (dataSize > 255) {
+        logger->log(__FILE__, __LINE__, "Cannot execute message1, data is too long", LogLevel::ERROR);
+        return std::vector<octet>();
+    }
+    apdu_cmd_t* apduCmd = new apdu_cmd_t();
+    apduCmd->cla = 0x00;
+    apduCmd->ins = cmd;
+    apduCmd->p1 = 0x00;
+    apduCmd->p2 = 0x00;
+    std::move(data.begin(), data.end(), apduCmd->cdf);
+    octet apdu[apduCmdEnc(0, apduCmd)];
+    apduCmdEnc(apdu, apduCmd);
+    return std::vector<octet>(apdu, apdu + sizeof(apdu) / sizeof(octet));
+}
+
 std::vector<octet> Bpace::createMessage1() {
     std::vector<octet> message1;
 
@@ -40,7 +58,7 @@ std::vector<octet> Bpace::createMessage1() {
     }
 
     std::copy(this->out, this->out + (this->params.l / 8), back_inserter(message1));
-    auto apdu = createAPDUCmd(0x86, message1);
+    auto apdu = this->createAPDUCmd(0x86, message1);
     std::vector<octet> apduCmd;
     try {
         apduCmd = APDU::derEncode(0x7c, APDU::derEncode(0x80, apdu));
@@ -57,7 +75,7 @@ std::vector<octet> Bpace::createMessage1() {
 std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
     std::vector<octet> message3;
     size_t decodedSize;
-    derDec2(&this->in, &decodedSize, message2.data(), message2.size(), 0x81);
+    this->in = APDU::derDecode(0x81, message2.data(), message2.size()).data();
 
     prngEchoStart(this->echo, this->params.seed, 8);
     int code = bakeBPACEStep4(this->out, this->in, this->state);
@@ -89,9 +107,8 @@ std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
 }
 
 bool Bpace::lastAuthStep(std::vector<octet> message3) {
-    octet* decoded;
-    size_t decodedLength;
-    derDec2(&decoded, &decodedLength, message3.data(), message3.size(), 0x83);
+    octet* decoded = APDU::derDecode(0x83, message3.data(), message3.size()).data();
+
     // std::vector<octet> tmp{M4.begin() + 1, M4.end()};
     int err = bakeBPACEStep6(decoded, this->state);
     if (err != ERR_OK) {
@@ -119,20 +136,4 @@ std::vector<octet> Bpace::sendM3(std::vector<octet> message2) {
     return pcsc.sendCommandToCard(this->createMessage3(message2));
 }
 
-std::vector<octet> createAPDUCmd(octet cmd, std::vector<octet>& data) {
-    int dataSize = data.size();
 
-    if (dataSize > 255) {
-        logger->log(__FILE__, __LINE__, "Cannot execute message1, data is too long", LogLevel::ERROR);
-        return std::vector<octet>();
-    }
-    apdu_cmd_t* apduCmd = new apdu_cmd_t();
-    apduCmd->cla = 0x00;
-    apduCmd->ins = cmd;
-    apduCmd->p1 = 0x00;
-    apduCmd->p2 = 0x00;
-    std::move(data.begin(), data.end(), apduCmd->cdf);
-    octet apdu[apduCmdEnc(0, apduCmd)];
-    apduCmdEnc(apdu, apduCmd);
-    return std::vector<octet>(apdu, apdu + sizeof(apdu) / sizeof(octet));
-}

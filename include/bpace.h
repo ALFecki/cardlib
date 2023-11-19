@@ -29,6 +29,7 @@ public:
     std::vector<octet> sendM1();
     std::vector<octet> sendM3(std::vector<octet> message2);
     bool lastAuthStep(std::vector<octet> message3);
+    std::vector<octet> createAPDUCmd(octet cmd, std::vector<octet>& data);
 
 private:
     bign_params params{};
