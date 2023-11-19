@@ -654,6 +654,13 @@ err_t bakeBPACEStepG(
 	void* state				/*!< [in,out] состояние */
 );
 
+err_t bakeBPACEStepGA(
+        octet k0[32],			/*!< [out] k0 stb 34.101.66-2014 */
+        octet k1[32],           /*!< [out] k1 stb 34.101.66-2014 */
+        void* state				/*!< [in/out] состояние */
+);
+
+
 /*!	\brief Выполнение BPACE стороной B
 
 	Протокол BPACE с параметрами params и настройками settings выполняется от 
