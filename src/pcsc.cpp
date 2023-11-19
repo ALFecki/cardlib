@@ -1,4 +1,4 @@
-#include <include/pcsc.h>
+#include "pcsc.h"
 
 #define CHECK(f, rv)             \
     if (SCARD_S_SUCCESS != rv) { \

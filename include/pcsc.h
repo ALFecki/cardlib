@@ -1,7 +1,7 @@
 #ifndef PCSC_H
 #define PCSC_H
 
-#include <PCSC/winscard.h>
+#include <pcsc-lite/winscard.h>
 #include <bee2/defs.h>
 #include <logger.h>
 #include <stdio.h>
