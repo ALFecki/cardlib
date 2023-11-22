@@ -28,7 +28,8 @@ std::vector<octet> APDU::derDecode(u32 tag, octet* data, size_t len) {
     return std::vector<octet>();
 }
 
-std::vector<octet> createAPDUCmd(Cla cla, Instruction cmd, const std::vector<octet>& data) {
+std::vector<octet> APDU::createAPDUCmd(
+    Cla cla, Instruction cmd, octet p1, octet p2, std::vector<octet> data) {
     int dataSize = data.size();
 
     if (dataSize > 255) {
@@ -40,11 +41,13 @@ std::vector<octet> createAPDUCmd(Cla cla, Instruction cmd, const std::vector<oct
     memSetZero(apduCmd, sizeof(apdu_cmd_t));
     apduCmd->cla = static_cast<octet>(cla);
     apduCmd->ins = static_cast<octet>(cmd);
-    apduCmd->p1 = 0x00;
-    apduCmd->p2 = 0x00;
-    apduCmd->cdf_len = data.size();
-    apduCmd->rdf_len = 25;
-    std::move(data.begin(), data.end(), apduCmd->cdf);
+    apduCmd->p1 = p1;
+    apduCmd->p2 = p2;
+    if (!data.empty()) {
+        apduCmd->cdf_len = data.size();
+        apduCmd->rdf_len = 255;
+        std::move(data.begin(), data.end(), apduCmd->cdf);
+    }
     // memCopy(apduCmd->cdf, data.data(), apduCmd->cdf_len);
 
     if (!apduCmdIsValid(apduCmd)) {
