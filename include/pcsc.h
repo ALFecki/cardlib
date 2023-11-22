@@ -3,6 +3,7 @@
 
 #include <pcsc-lite/winscard.h>
 #include <bee2/defs.h>
+#include <bee2/core/apdu.h>
 #include <logger.h>
 #include <stdio.h>
 

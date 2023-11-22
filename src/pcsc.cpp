@@ -1,5 +1,7 @@
 #include "pcsc.h"
 
+#include <iomanip>
+
 #define CHECK(f, rv)             \
     if (SCARD_S_SUCCESS != rv) { \
         printf(f ": %ld\n", rv); \
@@ -67,14 +69,20 @@ int PCSC::checkReaderStatus() {
 
 std::vector<octet> PCSC::sendCommandToCard(std::vector<octet> cmd) {
     LONG result;
-    octet* response = new octet[2048];
-    size_t responseLength;
-    for (size_t i = 0; i < cmd.size(); i++) {
-        std::cout << cmd[i] << ',';
-    }
+    octet response[25];
+    size_t responseLength = sizeof(response);
     result = SCardTransmit(
         this->hCard, &this->pioSendPci, cmd.data(), cmd.size(), NULL, response, &responseLength);
-    // проверка
+    if (result != SCARD_S_SUCCESS) {
+        logger->log(__FILE__, __LINE__, "Command sending error: " + std::to_string(result), LogLevel::ERROR);
+        return std::vector<octet>();
+    }
+    auto decodedSize = apduRespDec(0, response, responseLength);
+    octet resp[decodedSize];
+    apdu_resp_t* apduResp = (apdu_resp_t*)resp;
+    apduRespDec(apduResp, response, responseLength);
+    std::vector<octet> res(responseLength);
+    std::copy(apduResp->rdf, apduResp->rdf + apduResp->rdf_len, res.begin());
 
-    return std::vector<octet>(response, response + responseLength);
+    return res;
 }
