@@ -8,6 +8,11 @@ Bpace::Bpace(std::string password) {
     this->logger = Logger::getInstance();
     this->logger->setLogOutput("CONSOLE");
     this->logger->setLogLevel("INFO");
+
+    this->chooseApplеt(AID_KTA_APPLET, sizeof(AID_KTA_APPLET));
+
+    this->chooseMF();
+
     auto status = this->bPACEStart(password);
     if (status != ERR_OK) {
         std::cerr << "unable to init bpace: " << status;
@@ -18,9 +23,6 @@ Bpace::Bpace(std::string password) {
     }
 }
 
-int chooseAppleеt() {
-    return 0;
-}
 
 int Bpace::bPACEStart(std::string pwd) {
     bignParamsStd(&this->params, "1.2.112.0.2.0.34.101.45.3.1");
@@ -41,6 +43,26 @@ int Bpace::bPACEStart(std::string pwd) {
     return code;
 }
 
+
+std::vector<octet> Bpace::chooseApplеt(const octet aid[], size_t aidSize) {
+    std::vector<octet> aidVector(aid, aid + aidSize);
+    auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::FilesSelect, 0x04, 0x0C, aidVector);
+    auto res = pcsc.sendCommandToCard(apdu);
+    if (res.sw1 != 0x90 && res.sw2 != 0x00) {
+        throw -1;
+    }
+    std::vector<octet> data(res.rdf_len);
+    std::copy(res.rdf, res.rdf + res.rdf_len, data.begin());
+
+    return data;
+}
+
+bool Bpace::chooseMF() {
+    auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::FilesSelect, 0x00, 0x00);
+    auto res = pcsc.sendCommandToCard(apdu);
+    return true;
+}
+
 std::vector<octet> Bpace::createMessage1() {
     std::vector<octet> message1;
 
@@ -57,7 +79,7 @@ std::vector<octet> Bpace::createMessage1() {
     }
 
     std::copy(this->out, this->out + (this->params.l / 8), back_inserter(message1));
-    auto apdu = APDU::createAPDUCmd(Cla::Chained, Instruction::BPACESteps, message1);
+    auto apdu = APDU::createAPDUCmd(Cla::Chained, Instruction::BPACESteps,0x00, 0x00, message1);
     std::vector<octet> apduCmd;
     try {
         apduCmd = APDU::derEncode(0x7c, APDU::derEncode(0x80, apdu));
@@ -93,7 +115,7 @@ std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
     }
 
     std::copy(this->out, this->out + (this->params.l / 2) + 8, back_inserter(message3));
-    auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::BPACESteps, message3);
+    auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::BPACESteps, 0x00, 0x00, message3);
     std::vector<octet> apduCmd;
     try {
         apduCmd = APDU::derEncode(0x7c, APDU::derEncode(0x82, apdu));
@@ -129,11 +151,11 @@ bool Bpace::lastAuthStep(std::vector<octet> message3) {
     return true;
 }
 
-std::vector<octet> Bpace::sendM1() {
+apdu_resp_t Bpace::sendM1() {
     return pcsc.sendCommandToCard(this->createMessage1());
 }
 
-std::vector<octet> Bpace::sendM3(std::vector<octet> message2) {
+apdu_resp_t Bpace::sendM3(std::vector<octet> message2) {
     return pcsc.sendCommandToCard(this->createMessage3(message2));
 }
 
@@ -143,13 +165,19 @@ void Bpace::getKeys(octet* key0, octet* key1) {
 }
 
 bool Bpace::authorize() {
-    auto message2 = this->sendM1();
+    auto apduResp = this->sendM1();
+
+    std::vector<octet> message2(apduResp.rdf_len);
+    std::copy(apduResp.rdf, apduResp.rdf + apduResp.rdf_len, message2.begin());
+
     if (message2.empty()) {
         this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 2", LogLevel::ERROR);
         return false;
     }
 
-    auto M4 = this->sendM3(message2);
+    apduResp = this->sendM3(message2);
+    std::vector<octet> M4(apduResp.rdf_len);
+    std::copy(apduResp.rdf, apduResp.rdf + apduResp.rdf_len, M4.begin());
     if (M4.empty()) {
         this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 2", LogLevel::ERROR);
         return false;

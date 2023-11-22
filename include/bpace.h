@@ -26,12 +26,15 @@ public:
     Bpace(std::string password);
 
     int bPACEStart(std::string password);
+    std::vector<octet> chooseApplеt(const octet aid[], size_t aidSize);
+    bool chooseMF();
+
     bool authorize();
 
     std::vector<octet> createMessage1();
     std::vector<octet> createMessage3(std::vector<octet> message2);
-    std::vector<octet> sendM1();
-    std::vector<octet> sendM3(std::vector<octet> message2);
+    apdu_resp_t sendM1();
+    apdu_resp_t sendM3(std::vector<octet> message2);
     bool lastAuthStep(std::vector<octet> message3);
     void getKeys(octet *key0, octet *key1);
 

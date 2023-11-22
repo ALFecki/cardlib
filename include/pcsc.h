@@ -16,7 +16,7 @@ public:
     int initPCSC();
     int checkReaderStatus();
 
-    std::vector<octet> sendCommandToCard(std::vector<octet> cmd);
+    apdu_resp_t sendCommandToCard(std::vector<octet> cmd);
 
 private:
     SCARDCONTEXT hContext;
