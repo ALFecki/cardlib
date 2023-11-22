@@ -1,22 +1,59 @@
 #include <apducmd.h>
 
-// auto logger = Logger::getInstance();
+auto logger = Logger::getInstance();
 
 std::vector<octet> APDU::derEncode(u32 tag, const std::vector<octet>& data) {
     octet* apduCmd = new octet[2048];
-    auto count = derEnc(apduCmd, 0x82, data.data(), data.size());
+    auto count = derEnc(apduCmd, tag, data.data(), data.size());
     if (count == SIZE_MAX) {
-        // log->log(__FILE__, __LINE__, "Error der encode", LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Error der encode", LogLevel::ERROR);
         throw -1;
     }
 
-    return std::vector<octet>(apduCmd, apduCmd + count);
+    std::vector<octet> res(count);
+    std::copy(apduCmd, apduCmd + count, res.begin());
+    return res;
 }
 
 std::vector<octet> APDU::derDecode(u32 tag, octet* data, size_t len) {
     const octet* decoded;
     size_t decodedSize;
-    auto count = derDec2(&decoded, &decodedSize, data, len, tag);
+    if (derIsValid2(data, len, tag)) {
+        auto count = derDec2(&decoded, &decodedSize, data, len, tag);
+        std::vector<octet> res(count);
+        std::copy(data, data + count, res.begin());
+        return res;
+    }
+    std::cout << "Error der decoding" << std::endl;
+    return std::vector<octet>();
+}
 
-    return std::vector<octet>(decoded, decoded + count);
+std::vector<octet> createAPDUCmd(Cla cla, Instruction cmd, const std::vector<octet>& data) {
+    int dataSize = data.size();
+
+    if (dataSize > 255) {
+        logger->log(__FILE__, __LINE__, "Cannot execute message1, data is too long", LogLevel::ERROR);
+        return std::vector<octet>();
+    }
+    octet stack[255];
+    apdu_cmd_t* apduCmd = (apdu_cmd_t*)stack;
+    memSetZero(apduCmd, sizeof(apdu_cmd_t));
+    apduCmd->cla = static_cast<octet>(cla);
+    apduCmd->ins = static_cast<octet>(cmd);
+    apduCmd->p1 = 0x00;
+    apduCmd->p2 = 0x00;
+    apduCmd->cdf_len = data.size();
+    apduCmd->rdf_len = 25;
+    std::move(data.begin(), data.end(), apduCmd->cdf);
+    // memCopy(apduCmd->cdf, data.data(), apduCmd->cdf_len);
+
+    if (!apduCmdIsValid(apduCmd)) {
+        logger->log(__FILE__, __LINE__, "APDU command is not valid", LogLevel::ERROR);
+        return std::vector<octet>();
+    }
+    size_t apduSize = apduCmdEnc(0, apduCmd);
+    std::vector<octet> apdu(apduSize);
+    apduCmdEnc(apdu.data(), apduCmd);
+
+    return apdu;
 }

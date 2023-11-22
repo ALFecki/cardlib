@@ -18,6 +18,8 @@
 #include <iterator>
 #include <string>
 #include <vector>
+#include <span>
+#include <algorithm>
 
 class Bpace {
 public:
@@ -31,7 +33,7 @@ public:
     std::vector<octet> sendM1();
     std::vector<octet> sendM3(std::vector<octet> message2);
     bool lastAuthStep(std::vector<octet> message3);
-    std::vector<octet> createAPDUCmd(octet cmd, std::vector<octet>& data);
+    std::vector<octet> createAPDUCmd(octet cmd, const std::vector<octet>& data);
     void getKeys(octet *key0, octet *key1);
 
 private:
