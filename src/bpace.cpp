@@ -41,37 +41,6 @@ int Bpace::bPACEStart(std::string pwd) {
     return code;
 }
 
-
-std::vector<octet> Bpace::createAPDUCmd(octet cmd, const std::vector<octet>& data) {
-    int dataSize = data.size();
-
-    if (dataSize > 255) {
-        logger->log(__FILE__, __LINE__, "Cannot execute message1, data is too long", LogLevel::ERROR);
-        return std::vector<octet>();
-    }
-    octet stack[255];
-    apdu_cmd_t* apduCmd = (apdu_cmd_t*)stack;
-    memSetZero(apduCmd, sizeof(apdu_cmd_t));
-    apduCmd->cla = 0x00;
-    apduCmd->ins = cmd;
-    apduCmd->p1 = 0x00;
-    apduCmd->p2 = 0x00;
-    apduCmd->cdf_len = data.size();
-    apduCmd->rdf_len = 25;
-    std::move(data.begin(), data.end(), apduCmd->cdf);
-    // memCopy(apduCmd->cdf, data.data(), apduCmd->cdf_len);
-
-    if (!apduCmdIsValid(apduCmd)) {
-        logger->log(__FILE__, __LINE__, "APDU command is not valid", LogLevel::ERROR);
-        return std::vector<octet>();
-    }
-    size_t apduSize = apduCmdEnc(0, apduCmd);
-    std::vector<octet> apdu(apduSize);
-    apduCmdEnc(apdu.data(), apduCmd);
-
-    return apdu;
-}
-
 std::vector<octet> Bpace::createMessage1() {
     std::vector<octet> message1;
 
@@ -88,7 +57,7 @@ std::vector<octet> Bpace::createMessage1() {
     }
 
     std::copy(this->out, this->out + (this->params.l / 8), back_inserter(message1));
-    auto apdu = this->createAPDUCmd(0x86, message1);
+    auto apdu = APDU::createAPDUCmd(Cla::Chained, Instruction::BPACESteps, message1);
     std::vector<octet> apduCmd;
     try {
         apduCmd = APDU::derEncode(0x7c, APDU::derEncode(0x80, apdu));
@@ -124,7 +93,7 @@ std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
     }
 
     std::copy(this->out, this->out + (this->params.l / 2) + 8, back_inserter(message3));
-    auto apdu = createAPDUCmd(0x86, message3);
+    auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::BPACESteps, message3);
     std::vector<octet> apduCmd;
     try {
         apduCmd = APDU::derEncode(0x7c, APDU::derEncode(0x82, apdu));
