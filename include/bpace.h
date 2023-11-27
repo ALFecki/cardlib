@@ -32,8 +32,8 @@ public:
 
     std::vector<octet> createMessage1();
     std::vector<octet> createMessage3(std::vector<octet> message2);
-    apdu_resp_t sendM1();
-    apdu_resp_t sendM3(std::vector<octet> message2);
+    std::vector<octet> sendM1();
+    std::vector<octet> sendM3(std::vector<octet> message2);
     bool lastAuthStep(std::vector<octet> message3);
     void getKeys(octet *key0, octet *key1);
 

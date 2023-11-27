@@ -67,7 +67,7 @@ int PCSC::checkReaderStatus() {
     return result;
 }
 
-apdu_resp_t PCSC::sendCommandToCard(std::vector<octet> cmd) {
+std::vector<octet> PCSC::sendCommandToCard(std::vector<octet> cmd) {
     LONG result;
     octet response[255];
     size_t responseLength = sizeof(response);
@@ -75,12 +75,15 @@ apdu_resp_t PCSC::sendCommandToCard(std::vector<octet> cmd) {
         this->hCard, &this->pioSendPci, cmd.data(), cmd.size(), NULL, response, &responseLength);
     if (result != SCARD_S_SUCCESS) {
         logger->log(__FILE__, __LINE__, "Command sending error: " + std::to_string(result), LogLevel::ERROR);
-        return apdu_resp_t();
+        return std::vector<octet>();
     }
-    auto decodedSize = apduRespDec(0, response, responseLength);
+    return std::vector<octet>(response, response + responseLength);
+}
+
+apdu_resp_t PCSC::decodeResponse(std::vector<octet> response) {
+    auto decodedSize = apduRespDec(0, response.data(), response.size());
     octet resp[decodedSize];
     apdu_resp_t* apduResp = (apdu_resp_t*)resp;
-    apduRespDec(apduResp, response, responseLength);
-
+    apduRespDec(apduResp, response.data(), response.size());
     return *apduResp;
 }
