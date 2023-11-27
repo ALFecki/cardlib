@@ -24,15 +24,32 @@ Bpace::Bpace(std::string password) {
 }
 
 int Bpace::bpaceInit() {
-    auto certHatEid = CertHAT(OID_EID, EID_ACCESS);
-    
+    auto certHatEsign = CertHAT(std::vector<octet>(OID_ESIGN, OID_ESIGN + sizeof(OID_ESIGN)),
+                              std::vector<octet>(ESIGN_ACCESS, ESIGN_ACCESS + sizeof(ESIGN_ACCESS)));
 
     std::vector<octet> initBpace;
     auto encoded = APDU::derEncode(0x80, std::vector<octet>(OID_BPACE, OID_BPACE + sizeof(OID_BPACE)));
     std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
 
+
+    auto certHatEid = CertHAT(std::vector<octet>(OID_EID, OID_EID + sizeof(OID_EID)),
+                              std::vector<octet>(EID_ACCESS, EID_ACCESS + sizeof(EID_ACCESS)));
+
     encoded = APDU::derEncode(0x83, std::vector<octet>(1, 0x02));
     std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
+    
+
+    initBpace.push_back(0x7f);
+    initBpace.push_back(0x4c);
+    initBpace.push_back(0x10);
+
+    encoded = certHatEsign.encode();
+    std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
+
+
+    initBpace.push_back(0x7f);
+    initBpace.push_back(0x4c);
+    initBpace.push_back(0x10);
 
     encoded = certHatEid.encode();
     std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
@@ -45,11 +62,19 @@ int Bpace::bpaceInit() {
     this->settings.helloa_len = encoded.size();
 
     auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::BPACEInit, 0xC1, 0xA4, initBpace);
-    pcsc.sendCommandToCard(apdu);
+    auto resp = pcsc.sendCommandToCard(apdu);
+    if (resp.sw1 != 0x90) {
+        logger->log(__FILE__, __LINE__, "Init BPACE failed", LogLevel::ERROR);
+        return -1;
+    }
+    return 0;
 }
 
 int Bpace::bPACEStart(std::string pwd) {
-    bpaceInit();
+    auto error = bpaceInit();
+    if (error != ERR_OK) {
+        return error;
+    }
 
     err_t err = bignParamsStd(&this->params, "1.2.112.0.2.0.34.101.45.3.1");
 
