@@ -9,7 +9,8 @@ set(SRC
         src/apducmd.cpp
         src/bpace.cpp
         src/logger.cpp
-        src/pcsc.cpp)
+        src/pcsc.cpp
+        src/certHat.cpp)
 
 include_directories(include libs)
 
