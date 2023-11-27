@@ -8,23 +8,22 @@
 #include <bee2/core/prng.h>
 #include <bee2/crypto/bake.h>
 #include <bee2/crypto/bign.h>
-#include <bee2/defs.h>
 
 #include <apducmd.h>
+#include <certHat.h>
 #include <logger.h>
 #include <pcsc.h>
 
 
 #include <iterator>
 #include <string>
-#include <vector>
 #include <span>
-#include <algorithm>
 
 class Bpace {
 public:
     Bpace(std::string password);
 
+    int bpaceInit();
     int bPACEStart(std::string password);
     std::vector<octet> chooseApplеt(const octet aid[], size_t aidSize);
     bool chooseMF();

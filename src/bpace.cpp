@@ -23,8 +23,40 @@ Bpace::Bpace(std::string password) {
     }
 }
 
+int Bpace::bpaceInit() {
+    auto certHatEid = CertHAT(OID_EID, EID_ACCESS);
+    
+
+    std::vector<octet> initBpace;
+    auto encoded = APDU::derEncode(0x80, std::vector<octet>(OID_BPACE, OID_BPACE + sizeof(OID_BPACE)));
+    std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
+
+    encoded = APDU::derEncode(0x83, std::vector<octet>(1, 0x02));
+    std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
+
+    encoded = certHatEid.encode();
+    std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
+    char* certHat = new char[encoded.size()];
+    for (size_t i = 0; i < encoded.size(); ++i) {
+        certHat[i] = static_cast<const char>(encoded[i]);
+    }
+    // std::copy(encoded.begin(), encoded.end(), &certHat);
+    this->settings.helloa = certHat;
+    this->settings.helloa_len = encoded.size();
+
+    auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::BPACEInit, 0xC1, 0xA4, initBpace);
+    pcsc.sendCommandToCard(apdu);
+}
+
 int Bpace::bPACEStart(std::string pwd) {
-    bignParamsStd(&this->params, "1.2.112.0.2.0.34.101.45.3.1");
+    bpaceInit();
+
+    err_t err = bignParamsStd(&this->params, "1.2.112.0.2.0.34.101.45.3.1");
+
+    if (err != ERR_OK) {
+        logger->log(__FILE__, __LINE__, "Cannot start bpace due to std params", LogLevel::ERROR);
+        return err;
+    }
     prngEchoStart(this->echo, this->params.seed, 8);
 
     this->blob = blobCreate(9 * this->params.l / 8 + 8 + bakeBPACE_keep(this->params.l));
@@ -38,6 +70,10 @@ int Bpace::bPACEStart(std::string pwd) {
 
     err_t code = bakeBPACEStart(this->state, &this->params, &this->settings, pwd_tmp, pwd.length());
 
+    if (code != ERR_OK) {
+        logger->log(__FILE__, __LINE__, "Cannot start bpace", LogLevel::ERROR);
+        return code;
+    }
     return code;
 }
 
@@ -58,9 +94,9 @@ std::vector<octet> Bpace::chooseApplеt(const octet aid[], size_t aidSize) {
 bool Bpace::chooseMF() {
     auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::FilesSelect, 0x00, 0x00);
     auto res = pcsc.sendCommandToCard(apdu);
-        if (res.sw1 != 0x90 && res.sw2 != 0x00) {
-            logger->log(__FILE__, __LINE__, "Error in choosing MF", LogLevel::ERROR);
-            return false;
+    if (res.sw1 != 0x90 && res.sw2 != 0x00) {
+        logger->log(__FILE__, __LINE__, "Error in choosing MF", LogLevel::ERROR);
+        return false;
     }
     logger->log(__FILE__, __LINE__, "Successful choosing MF", LogLevel::INFO);
     return true;
