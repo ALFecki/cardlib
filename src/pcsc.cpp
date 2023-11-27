@@ -69,7 +69,7 @@ int PCSC::checkReaderStatus() {
 
 apdu_resp_t PCSC::sendCommandToCard(std::vector<octet> cmd) {
     LONG result;
-    octet response[25];
+    octet response[255];
     size_t responseLength = sizeof(response);
     result = SCardTransmit(
         this->hCard, &this->pioSendPci, cmd.data(), cmd.size(), NULL, response, &responseLength);
