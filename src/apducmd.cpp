@@ -45,7 +45,7 @@ std::vector<octet> APDU::createAPDUCmd(
     apduCmd->p2 = p2;
     if (!data.empty()) {
         apduCmd->cdf_len = data.size();
-        apduCmd->rdf_len = 255;
+        // apduCmd->rdf_len = 255;
         std::move(data.begin(), data.end(), apduCmd->cdf);
     }
     // memCopy(apduCmd->cdf, data.data(), apduCmd->cdf_len);
@@ -57,6 +57,9 @@ std::vector<octet> APDU::createAPDUCmd(
     size_t apduSize = apduCmdEnc(0, apduCmd);
     std::vector<octet> apdu(apduSize);
     apduCmdEnc(apdu.data(), apduCmd);
-
+    for (auto& oc : apdu) {
+        printf("0x%02X ", (unsigned int)(oc));
+    }
+    std::cout << std::endl;
     return apdu;
 }
