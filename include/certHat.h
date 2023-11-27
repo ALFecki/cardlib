@@ -9,7 +9,7 @@
 class CertHAT {
 
 public:
-    CertHAT(const octet objId[], const octet data[]);
+    CertHAT(std::vector<octet> objId, std::vector<octet> data);
     std::vector<octet> encode();
 
 
