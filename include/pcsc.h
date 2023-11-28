@@ -17,7 +17,7 @@ public:
     int checkReaderStatus();
 
     std::vector<octet> sendCommandToCard(std::vector<octet> cmd);
-    apdu_resp_t decodeResponse(std::vector<octet> response);
+    std::shared_ptr<apdu_resp_t> decodeResponse(std::vector<octet> response);
 
 private:
     SCARDCONTEXT hContext;
