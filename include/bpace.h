@@ -25,7 +25,7 @@ public:
 
     int bpaceInit();
     int bPACEStart(std::string password);
-    std::vector<octet> chooseApplеt(const octet aid[], size_t aidSize);
+    bool chooseApplеt(const octet aid[], size_t aidSize);
     bool chooseMF();
 
     bool authorize();
