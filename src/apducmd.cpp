@@ -18,13 +18,26 @@ std::vector<octet> APDU::derEncode(u32 tag, const std::vector<octet>& data) {
 std::vector<octet> APDU::derDecode(u32 tag, octet* data, size_t len) {
     const octet* decoded;
     size_t decodedSize;
-    auto count = derDec2(&decoded, &decodedSize, data, len, tag);
+    // auto count = derDec2(&decoded, &decodedSize, data, len, tag);
+    std::cout << "Data before decoding: ";
+    for (size_t i = 0; i < len; i++) {
+        printf("0x%02X ", (unsigned int)(data[i]));
+    }
+    std::cout << std::endl;
+    u32 tag1;
+    auto count = derDec(&tag1, &decoded, &decodedSize, data, len);
     if (count == SIZE_MAX) {
         std::cout << "Error der decoding" << std::endl;
         return std::vector<octet>();
     }
     std::vector<octet> res(count);
-    std::copy(data + 2, data + count, res.begin());
+    std::copy(decoded, decoded + count, res.begin());
+
+    std::cout << "Data after decoding: ";
+    for (size_t i = 0; i < decodedSize; i++) {
+        printf("0x%02X ", (unsigned int)(decoded[i]));
+    }
+    std::cout << std::endl;
     return res;
 }
 

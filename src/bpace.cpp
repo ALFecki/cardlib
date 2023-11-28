@@ -24,39 +24,48 @@ Bpace::Bpace(std::string password) {
 }
 
 int Bpace::bpaceInit() {
-    auto certHatEsign = CertHAT(std::vector<octet>(OID_ESIGN, OID_ESIGN + sizeof(OID_ESIGN)),
-                                std::vector<octet>(ESIGN_ACCESS, ESIGN_ACCESS + sizeof(ESIGN_ACCESS)));
-
     std::vector<octet> initBpace;
     auto encoded = APDU::derEncode(0x80, std::vector<octet>(OID_BPACE, OID_BPACE + sizeof(OID_BPACE)));
     std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
-
-    auto certHatEid = CertHAT(std::vector<octet>(OID_EID, OID_EID + sizeof(OID_EID)),
-                              std::vector<octet>(EID_ACCESS, EID_ACCESS + sizeof(EID_ACCESS)));
-
-    encoded = APDU::derEncode(0x83, std::vector<octet>(1, 0x02));
+    encoded = APDU::derEncode(0x83, std::vector<octet>(1, 0x04));
     std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
-
+    
     initBpace.push_back(0x7f);
     initBpace.push_back(0x4c);
     initBpace.push_back(0x10);
+    
+    auto certHatEsign = CertHAT(std::vector<octet>(OID_ESIGN, OID_ESIGN + sizeof(OID_ESIGN)),
+                                std::vector<octet>(ESIGN_ACCESS, ESIGN_ACCESS + sizeof(ESIGN_ACCESS)));
 
     encoded = certHatEsign.encode();
     std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
 
-    initBpace.push_back(0x7f);
-    initBpace.push_back(0x4c);
-    initBpace.push_back(0x10);
 
-    encoded = certHatEid.encode();
-    std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
+    std::vector<octet> helloa = std::vector<octet>();
     char* certHat = new char[encoded.size()];
     for (size_t i = 0; i < encoded.size(); ++i) {
         certHat[i] = static_cast<const char>(encoded[i]);
     }
-    // std::copy(encoded.begin(), encoded.end(), &certHat);
-    this->settings.helloa = certHat;
-    this->settings.helloa_len = encoded.size();
+    std::copy(certHat, certHat + encoded.size(), std::back_inserter(helloa));
+    // this->settings.helloa = certHat;
+
+    initBpace.push_back(0x7f);
+    initBpace.push_back(0x4c);
+    initBpace.push_back(0x10);
+    
+    auto certHatEid = CertHAT(std::vector<octet>(OID_EID, OID_EID + sizeof(OID_EID)),
+                              std::vector<octet>(EID_ACCESS, EID_ACCESS + sizeof(EID_ACCESS)));
+
+    encoded = certHatEid.encode();
+    std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
+    
+    certHat = new char[encoded.size()];
+    for (size_t i = 0; i < encoded.size(); ++i) {
+        certHat[i] = static_cast<const char>(encoded[i]);
+    }
+    std::copy(certHat, certHat + encoded.size(), std::back_inserter(helloa));
+    this->settings.helloa = helloa.data();
+    this->settings.helloa_len = helloa.size();
 
     auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::BPACEInit, 0xC1, 0xA4, initBpace);
     auto resp = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
@@ -76,7 +85,7 @@ int Bpace::bPACEStart(std::string pwd) {
     err_t err = bignParamsStd(&this->params, "1.2.112.0.2.0.34.101.45.3.1");
 
     if (err != ERR_OK) {
-        logger->log(__FILE__, __LINE__, "Cannot start bpace due to std params", LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Cannot start BPACE due to std params", LogLevel::ERROR);
         return err;
     }
     prngEchoStart(this->echo, this->params.seed, 8);
@@ -173,18 +182,9 @@ std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
     }
 
     std::copy(this->out, this->out + (this->params.l / 2) + 8, back_inserter(message3));
+    message3 = APDU::derEncode(0x7c, APDU::derEncode(0x82, message3));
     auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::BPACESteps, 0x00, 0x00, message3);
-    std::vector<octet> apduCmd;
-    try {
-        apduCmd = APDU::derEncode(0x7c, APDU::derEncode(0x82, apdu));
-    } catch (int code) {
-        if (this->blob != nullptr) {
-            blobClose(this->blob);
-            this->blob = nullptr;
-        }
-        return message3;
-    }
-    return apduCmd;
+    return apdu;
 }
 
 bool Bpace::lastAuthStep(std::vector<octet> message3) {
@@ -233,8 +233,8 @@ bool Bpace::authorize() {
     //     throw -1;
     // }
     logger->log(__FILE__, __LINE__, "Successful BPACE step 1", LogLevel::INFO);
-    std::vector<octet> message2(resp->rdf_len);
-    std::copy(resp->rdf, resp->rdf + resp->rdf_len, message2.begin());
+    std::vector<octet> message2(apduResp.size());
+    std::copy(apduResp.begin(), apduResp.end(), message2.begin());
 
     if (message2.empty()) {
         this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 2", LogLevel::ERROR);
