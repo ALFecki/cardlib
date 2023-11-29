@@ -10,6 +10,10 @@ CertHAT::CertHAT(std::vector<octet> objId, std::vector<octet> access) {
 
 std::vector<octet> CertHAT::encode() {
     std::vector<octet> res;
+    res.push_back(0x7f);
+    res.push_back(0x4c);
+    res.push_back(0x10);
+    
     std::copy(objId.begin(), objId.end() , std::back_inserter(res));
     std::copy(discretionaryData.begin(), discretionaryData.end() , std::back_inserter(res));
     std::cout << "Encoded cert: ";

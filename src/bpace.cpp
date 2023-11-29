@@ -27,12 +27,9 @@ int Bpace::bpaceInit() {
     std::vector<octet> initBpace;
     auto encoded = APDU::derEncode(0x80, std::vector<octet>(OID_BPACE, OID_BPACE + sizeof(OID_BPACE)));
     std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
-    encoded = APDU::derEncode(0x83, std::vector<octet>(1, 0x04));
+    encoded = APDU::derEncode(0x83, std::vector<octet>(1, 0x02));
     std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
     
-    initBpace.push_back(0x7f);
-    initBpace.push_back(0x4c);
-    initBpace.push_back(0x10);
     
     auto certHatEsign = CertHAT(std::vector<octet>(OID_ESIGN, OID_ESIGN + sizeof(OID_ESIGN)),
                                 std::vector<octet>(ESIGN_ACCESS, ESIGN_ACCESS + sizeof(ESIGN_ACCESS)));
@@ -47,11 +44,6 @@ int Bpace::bpaceInit() {
         certHat[i] = static_cast<const char>(encoded[i]);
     }
     std::copy(certHat, certHat + encoded.size(), std::back_inserter(helloa));
-    // this->settings.helloa = certHat;
-
-    initBpace.push_back(0x7f);
-    initBpace.push_back(0x4c);
-    initBpace.push_back(0x10);
     
     auto certHatEid = CertHAT(std::vector<octet>(OID_EID, OID_EID + sizeof(OID_EID)),
                               std::vector<octet>(EID_ACCESS, EID_ACCESS + sizeof(EID_ACCESS)));
@@ -97,9 +89,10 @@ int Bpace::bPACEStart(std::string pwd) {
     this->state = this->out + this->params.l / 2 + 8;
 
     octet pwd_tmp[16];
+    size_t pwdSize = pwd.length();
     std::move(pwd.begin(), pwd.end(), pwd_tmp);
 
-    err_t code = bakeBPACEStart(this->state, &this->params, &this->settings, pwd_tmp, pwd.length());
+    err_t code = bakeBPACEStart(this->state, &this->params, &this->settings, pwd_tmp, pwdSize);
 
     if (code != ERR_OK) {
         logger->log(__FILE__, __LINE__, "Cannot start bpace", LogLevel::ERROR);
@@ -241,15 +234,15 @@ bool Bpace::authorize() {
         return false;
     }
 
-    auto m3 = this->sendM3(message2);
-    resp = pcsc.decodeResponse(m3);
+    auto m4 = this->sendM3(message2);
+    resp = pcsc.decodeResponse(m4);
     tempDecoded = APDU::derDecode(0x7c, resp->rdf, resp->rdf_len);
-    apduResp =APDU::derDecode(0x81, tempDecoded.data(), tempDecoded.size());
+    apduResp =APDU::derDecode(0x83, tempDecoded.data(), tempDecoded.size());
 
-    std::vector<octet> M4(resp->rdf_len);
-    std::copy(resp->rdf, resp->rdf + resp->rdf_len, M4.begin());
+    std::vector<octet> M4(apduResp.size());
+    std::copy(apduResp.begin(), apduResp.end(), M4.begin());
     if (M4.empty()) {
-        this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 2", LogLevel::ERROR);
+        this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 4", LogLevel::ERROR);
         return false;
     }
 
