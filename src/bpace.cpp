@@ -29,8 +29,7 @@ int Bpace::bpaceInit() {
     std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
     encoded = APDU::derEncode(0x83, std::vector<octet>(1, 0x02));
     std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
-    
-    
+        
     auto certHatEsign = CertHAT(std::vector<octet>(OID_ESIGN, OID_ESIGN + sizeof(OID_ESIGN)),
                                 std::vector<octet>(ESIGN_ACCESS, ESIGN_ACCESS + sizeof(ESIGN_ACCESS)));
 
@@ -61,7 +60,7 @@ int Bpace::bpaceInit() {
 
     auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::BPACEInit, 0xC1, 0xA4, initBpace);
     auto resp = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
-    if (resp->sw1 != 0x90) {
+    if (resp->sw1 != 0x90 && resp->sw1 != 0x63) {
         logger->log(__FILE__, __LINE__, "Init BPACE failed", LogLevel::ERROR);
         return -1;
     }
@@ -89,8 +88,14 @@ int Bpace::bPACEStart(std::string pwd) {
     this->state = this->out + this->params.l / 2 + 8;
 
     octet pwd_tmp[16];
+
     size_t pwdSize = pwd.length();
-    std::move(pwd.begin(), pwd.end(), pwd_tmp);
+    std::copy(pwd.begin(), pwd.end(), pwd_tmp);
+    std::cout << "pwd_temp:  ";
+    for (size_t i = 0; i < pwdSize; i++) {
+        printf("0x%02X ", (unsigned int)(pwd_tmp[i]));
+    }
+    std::cout << std::endl;
 
     err_t code = bakeBPACEStart(this->state, &this->params, &this->settings, pwd_tmp, pwdSize);
 
@@ -156,15 +161,14 @@ std::vector<octet> Bpace::createMessage1() {
 
 std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
     std::vector<octet> message3;
-    size_t decodedSize;
-    this->in = new octet[message2.size()];
-    this->in = message2.data();
+    // this->in = new octet[message2.size()];
+    std::copy(message2.begin(), message2.end(), this->in);
     prngEchoStart(this->echo, this->params.seed, 8);
     int code = bakeBPACEStep4(this->out, this->in, this->state);
 
-    bakeBPACEStepGA(this->k0, this->k1, this->state);
+    int err = bakeBPACEStepG(this->k0, this->state);
 
-    if (code != ERR_OK) {
+    if (code != ERR_OK || err != ERR_OK) {
         this->logger->log(
             __FILE__, __LINE__, "Error in step4 BPACE: " + std::to_string(code), LogLevel::ERROR);
         if (this->blob != nullptr) {
@@ -207,7 +211,9 @@ std::vector<octet> Bpace::sendM1() {
 }
 
 std::vector<octet> Bpace::sendM3(std::vector<octet> message2) {
-    return pcsc.sendCommandToCard(this->createMessage3(message2));
+    auto mess = this->createMessage3(message2);
+    mess.push_back(0x0c);
+    return pcsc.sendCommandToCard(mess);
 }
 
 void Bpace::getKeys(octet* key0, octet* key1) {
@@ -226,15 +232,15 @@ bool Bpace::authorize() {
     //     throw -1;
     // }
     logger->log(__FILE__, __LINE__, "Successful BPACE step 1", LogLevel::INFO);
-    std::vector<octet> message2(apduResp.size());
-    std::copy(apduResp.begin(), apduResp.end(), message2.begin());
+    std::vector<octet> message3(apduResp.size());
+    std::copy(apduResp.begin(), apduResp.end(), message3.begin());
 
-    if (message2.empty()) {
+    if (message3.empty()) {
         this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 2", LogLevel::ERROR);
         return false;
     }
 
-    auto m4 = this->sendM3(message2);
+    auto m4 = this->sendM3(message3);
     resp = pcsc.decodeResponse(m4);
     tempDecoded = APDU::derDecode(0x7c, resp->rdf, resp->rdf_len);
     apduResp =APDU::derDecode(0x83, tempDecoded.data(), tempDecoded.size());
