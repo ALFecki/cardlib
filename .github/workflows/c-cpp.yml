@@ -11,12 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@master
-    - name: Checkout submodules
-      uses: textbook/git-checkout-submodule-action@master
+    - name: Checkout repo and submodules
+      uses: actions/checkout@v2
       with:
-        remote: true
+        submodules: recursive
 
     - name: compile lib
       run: mkdir build && cmake -Bbuild/
