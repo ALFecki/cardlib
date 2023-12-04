@@ -3,7 +3,7 @@ project(cardlib)
 
 set(CMAKE_CXX_STANDARD 20)
 
-set(LIBBEE2 ${PROJECT_SOURCE_DIR}/libs/libbee2_static.a)
+add_subdirectory(libs/bee2)
 
 set(SRC
         src/apducmd.cpp
@@ -12,10 +12,10 @@ set(SRC
         src/pcsc.cpp
         src/certHat.cpp)
 
-include_directories(include libs)
+include_directories(include libs libs/bee2/include)
 
 add_library(cardlib ${SRC})
 add_executable(cardlib-test main.cpp ${SRC})
 
-target_link_libraries(cardlib PUBLIC ${LIBBEE2} pcsclite)
-target_link_libraries(cardlib-test PUBLIC ${LIBBEE2} ${cardlib} pcsclite)
+target_link_libraries(cardlib PUBLIC bee2 pcsclite)
+target_link_libraries(cardlib-test PUBLIC bee2 ${cardlib} pcsclite)

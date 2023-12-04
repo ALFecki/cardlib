@@ -196,7 +196,7 @@ bool Bpace::lastAuthStep(std::vector<octet> message3) {
         // this->isAuthorized = true;
     }
 
-    bakeBPACEStepGA(this->k0, this->k1, this->state);
+    bakeBPACEStepG(this->k0, this->state);
 
     if (this->blob != nullptr) {
         blobClose(this->blob);
