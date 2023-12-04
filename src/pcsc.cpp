@@ -81,8 +81,7 @@ std::vector<octet> PCSC::sendCommandToCard(std::vector<octet> cmd) {
 }
 
 std::shared_ptr<apdu_resp_t> PCSC::decodeResponse(std::vector<octet> response) {
-    auto decodedSize = apduRespDec(0, response.data(), response.size());
-    std::shared_ptr<apdu_resp_t> apduResp = std::make_shared<apdu_resp_t>(decodedSize);
+    std::shared_ptr<apdu_resp_t> apduResp = std::shared_ptr<apdu_resp_t>(new apdu_resp_t());
     apduRespDec(apduResp.get(), response.data(), response.size());
     return apduResp;
 }
