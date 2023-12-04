@@ -84,5 +84,5 @@ std::shared_ptr<apdu_resp_t> PCSC::decodeResponse(std::vector<octet> response) {
     auto decodedSize = apduRespDec(0, response.data(), response.size());
     std::shared_ptr<apdu_resp_t> apduResp = std::make_shared<apdu_resp_t>(decodedSize);
     apduRespDec(apduResp.get(), response.data(), response.size());
-    return std::shared_ptr<apdu_resp_t>(apduResp);
+    return apduResp;
 }
