@@ -32,7 +32,6 @@ std::vector<octet> APDU::derDecode(u32 tag, octet* data, size_t len) {
     }
     std::vector<octet> res(decodedSize);
     std::copy(decoded, decoded + decodedSize, res.begin());
-
     // std::cout << "Data after decoding: ";
     // for (auto oc: res) {
     //     printf("0x%02X ", (unsigned int)(oc));
@@ -70,9 +69,5 @@ std::vector<octet> APDU::createAPDUCmd(
     size_t apduSize = apduCmdEnc(0, apduCmd);
     std::vector<octet> apdu(apduSize);
     apduCmdEnc(apdu.data(), apduCmd);
-    for (auto& oc : apdu) {
-        printf("0x%02X ", (unsigned int)(oc));
-    }
-    std::cout << std::endl;
     return apdu;
 }
