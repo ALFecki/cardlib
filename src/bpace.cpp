@@ -55,7 +55,9 @@ int Bpace::bpaceInit() {
         certHat[i] = static_cast<const char>(encoded[i]);
     }
     std::copy(certHat, certHat + encoded.size(), std::back_inserter(helloa));
-    this->settings.helloa = helloa.data();
+    this->settings.helloa = new char[helloa.size()];
+    std::copy(helloa.begin(), helloa.end(), (char*)this->settings.helloa);
+    // this->settings.helloa = helloa.data();
     this->settings.helloa_len = helloa.size();
 
     auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::BPACEInit, 0xC1, 0xA4, initBpace);
@@ -154,7 +156,7 @@ std::vector<octet> Bpace::createMessage1() {
 
 std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
     std::vector<octet> message3;
-    // this->in = new octet[message2.size()];
+    this->in = new octet[message2.size()];
     std::copy(message2.begin(), message2.end(), this->in);
     prngEchoStart(this->echo, this->params.seed, 8);
     int code = bakeBPACEStep4(this->out, this->in, this->state);
