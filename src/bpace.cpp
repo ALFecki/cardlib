@@ -30,33 +30,33 @@ int Bpace::bpaceInit() {
     encoded = APDU::derEncode(0x83, std::vector<octet>(1, 0x02));
     std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
         
-    // auto certHatEsign = CertHAT(std::vector<octet>(OID_ESIGN, OID_ESIGN + sizeof(OID_ESIGN)),
-    //                             std::vector<octet>(ESIGN_ACCESS, ESIGN_ACCESS + sizeof(ESIGN_ACCESS)));
+    auto certHatEsign = CertHAT(std::vector<octet>(OID_ESIGN, OID_ESIGN + sizeof(OID_ESIGN)),
+                                std::vector<octet>(ESIGN_ACCESS, ESIGN_ACCESS + sizeof(ESIGN_ACCESS)));
 
-    // encoded = certHatEsign.encode();
-    // std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
+    encoded = certHatEsign.encode();
+    std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
 
 
-    // std::vector<octet> helloa = std::vector<octet>();
-    // char* certHat = new char[encoded.size()];
-    // for (size_t i = 0; i < encoded.size(); ++i) {
-    //     certHat[i] = static_cast<const char>(encoded[i]);
-    // }
-    // std::copy(certHat, certHat + encoded.size(), std::back_inserter(helloa));
+    std::vector<octet> helloa = std::vector<octet>();
+    char* certHat = new char[encoded.size()];
+    for (size_t i = 0; i < encoded.size(); ++i) {
+        certHat[i] = static_cast<const char>(encoded[i]);
+    }
+    std::copy(certHat, certHat + encoded.size(), std::back_inserter(helloa));
     
-    // auto certHatEid = CertHAT(std::vector<octet>(OID_EID, OID_EID + sizeof(OID_EID)),
-    //                           std::vector<octet>(EID_ACCESS, EID_ACCESS + sizeof(EID_ACCESS)));
+    auto certHatEid = CertHAT(std::vector<octet>(OID_EID, OID_EID + sizeof(OID_EID)),
+                              std::vector<octet>(EID_ACCESS, EID_ACCESS + sizeof(EID_ACCESS)));
 
-    // encoded = certHatEid.encode();
-    // std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
+    encoded = certHatEid.encode();
+    std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
     
-    // certHat = new char[encoded.size()];
-    // for (size_t i = 0; i < encoded.size(); ++i) {
-    //     certHat[i] = static_cast<const char>(encoded[i]);
-    // }
-    // std::copy(certHat, certHat + encoded.size(), std::back_inserter(helloa));
-    // this->settings.helloa = helloa.data();
-    // this->settings.helloa_len = helloa.size();
+    certHat = new char[encoded.size()];
+    for (size_t i = 0; i < encoded.size(); ++i) {
+        certHat[i] = static_cast<const char>(encoded[i]);
+    }
+    std::copy(certHat, certHat + encoded.size(), std::back_inserter(helloa));
+    this->settings.helloa = helloa.data();
+    this->settings.helloa_len = helloa.size();
 
     auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::BPACEInit, 0xC1, 0xA4, initBpace);
     auto resp = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
@@ -105,12 +105,10 @@ bool Bpace::chooseApplеt(const octet aid[], size_t aidSize) {
     std::vector<octet> aidVector(aid, aid + aidSize);
     auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::FilesSelect, 0x04, 0x0C, aidVector);
     auto res = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
-    if (res->sw1 != 0x90 && res->sw2 != 0x00) {
+    if (res->sw1 != 0x90) {
         logger->log(__FILE__, __LINE__, "Error in choosing applet", LogLevel::ERROR);
         return false;
     }
-    // std::vector<octet> data(res->rdf_len);
-    // std::copy(res->rdf, res->rdf + res->rdf_len, data.begin());
     logger->log(__FILE__, __LINE__, "Successful choosing applet", LogLevel::INFO);
     return true;
 }
