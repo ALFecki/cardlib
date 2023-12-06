@@ -30,33 +30,33 @@ int Bpace::bpaceInit() {
     encoded = APDU::derEncode(0x83, std::vector<octet>(1, 0x02));
     std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
         
-    auto certHatEsign = CertHAT(std::vector<octet>(OID_ESIGN, OID_ESIGN + sizeof(OID_ESIGN)),
-                                std::vector<octet>(ESIGN_ACCESS, ESIGN_ACCESS + sizeof(ESIGN_ACCESS)));
+    // auto certHatEsign = CertHAT(std::vector<octet>(OID_ESIGN, OID_ESIGN + sizeof(OID_ESIGN)),
+    //                             std::vector<octet>(ESIGN_ACCESS, ESIGN_ACCESS + sizeof(ESIGN_ACCESS)));
 
-    encoded = certHatEsign.encode();
-    std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
+    // encoded = certHatEsign.encode();
+    // std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
 
 
-    std::vector<octet> helloa = std::vector<octet>();
-    char* certHat = new char[encoded.size()];
-    for (size_t i = 0; i < encoded.size(); ++i) {
-        certHat[i] = static_cast<const char>(encoded[i]);
-    }
-    std::copy(certHat, certHat + encoded.size(), std::back_inserter(helloa));
+    // std::vector<octet> helloa = std::vector<octet>();
+    // char* certHat = new char[encoded.size()];
+    // for (size_t i = 0; i < encoded.size(); ++i) {
+    //     certHat[i] = static_cast<const char>(encoded[i]);
+    // }
+    // std::copy(certHat, certHat + encoded.size(), std::back_inserter(helloa));
     
-    auto certHatEid = CertHAT(std::vector<octet>(OID_EID, OID_EID + sizeof(OID_EID)),
-                              std::vector<octet>(EID_ACCESS, EID_ACCESS + sizeof(EID_ACCESS)));
+    // auto certHatEid = CertHAT(std::vector<octet>(OID_EID, OID_EID + sizeof(OID_EID)),
+    //                           std::vector<octet>(EID_ACCESS, EID_ACCESS + sizeof(EID_ACCESS)));
 
-    encoded = certHatEid.encode();
-    std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
+    // encoded = certHatEid.encode();
+    // std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
     
-    certHat = new char[encoded.size()];
-    for (size_t i = 0; i < encoded.size(); ++i) {
-        certHat[i] = static_cast<const char>(encoded[i]);
-    }
-    std::copy(certHat, certHat + encoded.size(), std::back_inserter(helloa));
-    this->settings.helloa = helloa.data();
-    this->settings.helloa_len = helloa.size();
+    // certHat = new char[encoded.size()];
+    // for (size_t i = 0; i < encoded.size(); ++i) {
+    //     certHat[i] = static_cast<const char>(encoded[i]);
+    // }
+    // std::copy(certHat, certHat + encoded.size(), std::back_inserter(helloa));
+    // this->settings.helloa = helloa.data();
+    // this->settings.helloa_len = helloa.size();
 
     auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::BPACEInit, 0xC1, 0xA4, initBpace);
     auto resp = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
@@ -91,11 +91,6 @@ int Bpace::bPACEStart(std::string pwd) {
 
     size_t pwdSize = pwd.length();
     std::copy(pwd.begin(), pwd.end(), pwd_tmp);
-    std::cout << "pwd_temp:  ";
-    for (size_t i = 0; i < pwdSize; i++) {
-        printf("0x%02X ", (unsigned int)(pwd_tmp[i]));
-    }
-    std::cout << std::endl;
 
     err_t code = bakeBPACEStart(this->state, &this->params, &this->settings, pwd_tmp, pwdSize);
 
@@ -180,15 +175,14 @@ std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
 
     std::copy(this->out, this->out + (this->params.l / 2) + 8, back_inserter(message3));
     message3 = APDU::derEncode(0x7c, APDU::derEncode(0x82, message3));
-    auto apdu = APDU::createAPDUCmd(Cla::Default, Instruction::BPACESteps, 0x00, 0x00, message3);
-    return apdu;
+    return APDU::createAPDUCmd(Cla::Default, Instruction::BPACESteps, 0x00, 0x00, message3);
 }
 
 bool Bpace::lastAuthStep(std::vector<octet> message3) {
-    octet* decoded = APDU::derDecode(0x83, message3.data(), message3.size()).data();
+    // octet* decoded = APDU::derDecode(0x83, message3.data(), message3.size()).data();
 
     // std::vector<octet> tmp{M4.begin() + 1, M4.end()};
-    int err = bakeBPACEStep6(decoded, this->state);
+    int err = bakeBPACEStep6(message3.data(), this->state);
     if (err != ERR_OK) {
         logger->log(__FILE__, __LINE__, "Error in last step BPACE: " + std::to_string(err), LogLevel::ERROR);
         // this->isAuthorized = false;
@@ -212,7 +206,7 @@ std::vector<octet> Bpace::sendM1() {
 
 std::vector<octet> Bpace::sendM3(std::vector<octet> message2) {
     auto mess = this->createMessage3(message2);
-    mess.push_back(0x0c);
+    // mess.push_back(0x0c);
     return pcsc.sendCommandToCard(mess);
 }
 
@@ -223,17 +217,20 @@ void Bpace::getKeys(octet* key0, octet* key1) {
 
 bool Bpace::authorize() {
     auto m2 = this->sendM1();
+
     auto resp = pcsc.decodeResponse(m2);
+
+    if (resp->sw1 != 0x90) {
+        logger->log(__FILE__, __LINE__, "Error in BPACE step 1", LogLevel::ERROR);
+        return false;
+    }
+    logger->log(__FILE__, __LINE__, "Successful BPACE step 1", LogLevel::INFO);
+
     auto tempDecoded = APDU::derDecode(0x7c, resp->rdf, resp->rdf_len);
     auto apduResp = APDU::derDecode(0x81, tempDecoded.data(), tempDecoded.size());
-
-    // if (apduResp.sw1 != 0x90) {
-    //     logger->log(__FILE__, __LINE__, "Error in BPACE step 1", LogLevel::ERROR);
-    //     throw -1;
-    // }
-    logger->log(__FILE__, __LINE__, "Successful BPACE step 1", LogLevel::INFO);
-    std::vector<octet> message3(apduResp.size());
-    std::copy(apduResp.begin(), apduResp.end(), message3.begin());
+    
+    std::vector<octet> message3;
+    std::copy(apduResp.begin(), apduResp.end(), std::back_inserter(message3));
 
     if (message3.empty()) {
         this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 2", LogLevel::ERROR);
@@ -258,5 +255,6 @@ bool Bpace::authorize() {
         this->getKeys(k0, k1);
         // this->sender->initSecureContext(k0, k1);
     }
+    this->logger->log(__FILE__, __LINE__, "Successful authorization", LogLevel::INFO);
     return true;
 }
