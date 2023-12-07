@@ -10,7 +10,10 @@ set(SRC
         src/bpace.cpp
         src/logger.cpp
         src/pcsc.cpp
-        src/certHat.cpp)
+        src/certHat.cpp
+        src/cardlib.cpp
+        src/cardsecure.cpp)
+
 
 include_directories(include libs libs/bee2/include)
 

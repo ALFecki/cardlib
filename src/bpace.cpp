@@ -207,6 +207,10 @@ void Bpace::getKey(octet* key0) {
     std::copy(this->k0, this->k0 + 32, key0);
 }
 
+std::vector<octet> Bpace::getKey() {
+    return std::vector<octet>(this->k0, this->k0 + 32);
+}
+
 bool Bpace::authorize() {
     auto m2 = this->sendM1();
 
