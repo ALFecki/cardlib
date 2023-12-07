@@ -2,6 +2,13 @@
 
 auto logger = Logger::getInstance();
 
+APDU::APDU(Cla cla, Instruction ins, octet p1, octet p2, std::vector<octet> data = {}): cla(cla), instruction(ins), p1(p1), p2(p2) {
+    if (!data.empty()) {
+        this->cdf_len = data.size();
+        this->cdf = data;
+    }
+}
+
 std::vector<octet> derEncode(u32 tag, const std::vector<octet>& data) {
     octet* apduCmd = new octet[2048];
     auto count = derEnc(apduCmd, tag, data.data(), data.size());
