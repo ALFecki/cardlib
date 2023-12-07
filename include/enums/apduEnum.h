@@ -19,4 +19,6 @@ enum class Cla { Default = 0x00, Chained = 0x10, Secure = 0x04, SecureChained = 
 
 enum class Instruction { FilesSelect = 0xA4, BPACEInit = 0x22, BPACESteps = 0x86 };
 
+enum class Pwd { CAN = 0x02, PIN = 0x03, PUK = 0x04};
+
 #endif
