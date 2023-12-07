@@ -13,10 +13,5 @@ std::vector<octet> CertHAT::encode() {
     
     std::copy(objId.begin(), objId.end() , std::back_inserter(res));
     std::copy(discretionaryData.begin(), discretionaryData.end() , std::back_inserter(res));
-    std::cout << "Encoded cert: ";
-    for (auto& oc : res) {
-        printf("0x%02X ", (unsigned int)(oc));
-    }
-    std::cout << std::endl;
     return res;
 }
