@@ -55,8 +55,7 @@ int Bpace::bpaceInit(Pwd pwd_type) {
     this->settings.helloa = new char[helloa.size()];
     std::copy(helloa.begin(), helloa.end(), (char*)this->settings.helloa);
     this->settings.helloa_len = helloa.size();
-
-    auto apdu = createAPDUCmd(Cla::Default, Instruction::BPACEInit, 0xC1, 0xA4, initBpace);
+    auto apdu = APDUEncode(APDU(Cla::Default, Instruction::BPACEInit, 0xC1, 0xA4, initBpace));
     auto resp = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
     if (resp->sw1 != 0x90 && resp->sw1 != 0x63) {
         logger->log(__FILE__, __LINE__, "Init BPACE failed", LogLevel::ERROR);
@@ -101,7 +100,7 @@ int Bpace::bPACEStart(std::string pwd, Pwd pwd_type) {
 
 bool Bpace::chooseApplеt(const octet aid[], size_t aidSize) {
     std::vector<octet> aidVector(aid, aid + aidSize);
-    auto apdu = createAPDUCmd(Cla::Default, Instruction::FilesSelect, 0x04, 0x0C, aidVector);
+    auto apdu = APDUEncode(APDU(Cla::Default, Instruction::FilesSelect, 0x04, 0x0C, aidVector));
     auto res = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
     if (res->sw1 != 0x90) {
         logger->log(__FILE__, __LINE__, "Error in choosing applet", LogLevel::ERROR);
@@ -112,7 +111,7 @@ bool Bpace::chooseApplеt(const octet aid[], size_t aidSize) {
 }
 
 bool Bpace::chooseMF() {
-    auto apdu = createAPDUCmd(Cla::Default, Instruction::FilesSelect, 0x00, 0x00);
+    auto apdu = APDUEncode(APDU(Cla::Default, Instruction::FilesSelect, 0x00, 0x00));
     auto res = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
     if (res->sw1 != 0x90 && res->sw2 != 0x00) {
         logger->log(__FILE__, __LINE__, "Error in choosing MF", LogLevel::ERROR);
@@ -147,7 +146,7 @@ std::vector<octet> Bpace::createMessage1() {
         }
         return message1;
     }
-    return createAPDUCmd(Cla::Chained, Instruction::BPACESteps, 0x00, 0x00, message1);
+    return APDUEncode(APDU(Cla::Chained, Instruction::BPACESteps, 0x00, 0x00, message1));
 }
 
 std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
@@ -171,7 +170,7 @@ std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
 
     std::copy(this->out, this->out + (this->params.l / 2) + 8, back_inserter(message3));
     message3 = derEncode(0x7c, derEncode(0x82, message3));
-    return createAPDUCmd(Cla::Default, Instruction::BPACESteps, 0x00, 0x00, message3);
+    return APDUEncode(APDU(Cla::Default, Instruction::BPACESteps, 0x00, 0x00, message3));
 }
 
 bool Bpace::lastAuthStep(std::vector<octet> message3) {
