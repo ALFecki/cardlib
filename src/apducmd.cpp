@@ -2,7 +2,7 @@
 
 auto logger = Logger::getInstance();
 
-std::vector<octet> APDU::derEncode(u32 tag, const std::vector<octet>& data) {
+std::vector<octet> derEncode(u32 tag, const std::vector<octet>& data) {
     octet* apduCmd = new octet[2048];
     auto count = derEnc(apduCmd, tag, data.data(), data.size());
     if (count == SIZE_MAX) {
@@ -15,7 +15,7 @@ std::vector<octet> APDU::derEncode(u32 tag, const std::vector<octet>& data) {
     return res;
 }
 
-std::vector<octet> APDU::derDecode(u32 tag, octet* data, size_t len) {
+std::vector<octet> derDecode(u32 tag, octet* data, size_t len) {
     const octet* decoded;
     size_t decodedSize;
     auto count = derDec2(&decoded, &decodedSize, data, len, tag);
@@ -28,8 +28,7 @@ std::vector<octet> APDU::derDecode(u32 tag, octet* data, size_t len) {
     return res;
 }
 
-std::vector<octet> APDU::createAPDUCmd(
-    Cla cla, Instruction cmd, octet p1, octet p2, std::vector<octet> data) {
+std::vector<octet> createAPDUCmd(Cla cla, Instruction cmd, octet p1, octet p2, std::vector<octet> data) {
     int dataSize = data.size();
 
     if (dataSize > 255) {
