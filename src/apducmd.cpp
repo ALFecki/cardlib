@@ -2,8 +2,8 @@
 
 auto logger = Logger::getInstance();
 
-APDU::APDU(Cla cla, Instruction ins, octet p1, octet p2, std::vector<octet> data)
-    : cla(cla), instruction(ins), p1(p1), p2(p2) {
+APDU::APDU(Cla cla, Instruction ins, octet p1, octet p2, std::vector<octet> data, boost::optional<size_t> le)
+    : cla(cla), instruction(ins), p1(p1), p2(p2), le(le) {
     if (!data.empty()) {
         this->cdf_len = data.size();
         this->cdf = data;
@@ -62,34 +62,3 @@ std::vector<octet> APDUEncode(APDU command) {
     apduCmdEnc(apdu.data(), apduCmd);
     return apdu;
 }
-
-// std::vector<octet> createAPDUCmd(Cla cla, Instruction cmd, octet p1, octet p2, std::vector<octet> data) {
-//     int dataSize = data.size();
-
-//     if (dataSize > 255) {
-//         logger->log(__FILE__, __LINE__, "Cannot execute message1, data is too long", LogLevel::ERROR);
-//         return std::vector<octet>();
-//     }
-//     octet stack[255];
-//     apdu_cmd_t* apduCmd = (apdu_cmd_t*)stack;
-//     memSetZero(apduCmd, sizeof(apdu_cmd_t));
-//     apduCmd->cla = static_cast<octet>(cla);
-//     apduCmd->ins = static_cast<octet>(cmd);
-//     apduCmd->p1 = p1;
-//     apduCmd->p2 = p2;
-//     if (!data.empty()) {
-//         apduCmd->cdf_len = data.size();
-//         // apduCmd->rdf_len = 255;
-//         std::move(data.begin(), data.end(), apduCmd->cdf);
-//     }
-//     // memCopy(apduCmd->cdf, data.data(), apduCmd->cdf_len);
-
-//     if (!apduCmdIsValid(apduCmd)) {
-//         logger->log(__FILE__, __LINE__, "APDU command is not valid", LogLevel::ERROR);
-//         return std::vector<octet>();
-//     }
-//     size_t apduSize = apduCmdEnc(0, apduCmd);
-//     std::vector<octet> apdu(apduSize);
-//     apduCmdEnc(apdu.data(), apduCmd);
-//     return apdu;
-// }
