@@ -21,10 +21,10 @@
 
 class Bpace {
 public:
-    Bpace(std::string password);
+    Bpace(std::string password, Pwd pwd_type);
 
-    int bpaceInit();
-    int bPACEStart(std::string password);
+    int bpaceInit(Pwd pwd_type);
+    int bPACEStart(std::string password, Pwd pwd_type);
     bool chooseApplеt(const octet aid[], size_t aidSize);
     bool chooseMF();
 
@@ -35,7 +35,7 @@ public:
     std::vector<octet> sendM1();
     std::vector<octet> sendM3(std::vector<octet> message2);
     bool lastAuthStep(std::vector<octet> message3);
-    void getKeys(octet *key0, octet *key1);
+    void getKey(octet *key0);
 
 private:
     bign_params params{};
@@ -43,8 +43,9 @@ private:
     blob_t blob{};
     octet *in{}, *out{};
     void *state{};
+    octet mac[32]{};
 
-    octet k0[32]{}, k1[32]{};
+    octet k0[32]{};
 
     bake_settings settings = {.kca = TRUE,
                               .kcb = TRUE,
