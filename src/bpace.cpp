@@ -121,6 +121,30 @@ bool Bpace::chooseMF() {
     return true;
 }
 
+bool Bpace::chooseEF(std::pair<octet, octet> fid) {
+    auto card = CardSecure();
+    card.initSecure(this->k0);
+    auto apdu = card.APDUEncrypt(APDU(Cla::Default, Instruction::ReadData, 0x01, 0x01, {}, 236));
+    if (apdu == boost::none) {
+        logger->log(__FILE__, __LINE__, "Error in choosing EF: cannot encrypt APDU", LogLevel::ERROR);
+        return false;
+    }
+    auto a = APDUEncode(apdu.get());
+    a.push_back(0x00);
+    auto res = pcsc.decodeResponse(pcsc.sendCommandToCard(a));
+    if (res->sw1 != 0x90 && res->sw2 != 0x00) {
+        logger->log(__FILE__, __LINE__, "Error in choosing EF", LogLevel::ERROR);
+        return false;
+    }
+    logger->log(__FILE__, __LINE__, "Successful choosing EF", LogLevel::INFO);
+    return true;
+}
+
+std::string Bpace::getName() {
+    std::cout << chooseEF({0x01, 0x04});
+    return "";
+}
+
 std::vector<octet> Bpace::createMessage1() {
     std::vector<octet> message1;
 
@@ -181,8 +205,13 @@ bool Bpace::lastAuthStep(std::vector<octet> message3) {
     } else {
         // this->isAuthorized = true;
     }
-
-    bakeBPACEStepG(this->k0, this->state);
+    err = bakeBPACEStepG(this->k0, this->state);
+    if (err != ERR_OK) {
+        logger->log(__FILE__, __LINE__, "Error in last step BPACE: " + std::to_string(err), LogLevel::ERROR);
+        // this->isAuthorized = false;
+    } else {
+        // this->isAuthorized = true;
+    }
 
     if (this->blob != nullptr) {
         blobClose(this->blob);

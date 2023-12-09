@@ -1,5 +1,3 @@
-#include <cardsecure.h>
-
 #include <limits>
 
 #include "bpace.h"
@@ -7,8 +5,9 @@
 int main() {
     Bpace bpace = Bpace("334780", Pwd::CAN);
     std::cout << bpace.authorize() << std::endl;
-    CardSecure card = CardSecure();
-    card.initSecure(bpace.getKey().data());
+    bpace.getName();
+    // CardSecure card = CardSecure();
+    // card.initSecure(bpace.getKey().data());
 
     // while (true) {
     //     std::cout << "Enter operation code (1 - data groups, 2 - sign): ";

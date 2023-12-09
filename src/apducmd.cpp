@@ -53,6 +53,9 @@ std::vector<octet> APDUEncode(APDU command) {
     apduCmd->p2 = command.p2;
     apduCmd->cdf_len = command.cdf_len;
     std::copy(command.cdf.begin(), command.cdf.end(), apduCmd->cdf);
+    if (command.le != boost::none) {
+        apduCmd->rdf_len = command.le.get();
+    }
     if (!apduCmdIsValid(apduCmd)) {
         logger->log(__FILE__, __LINE__, "APDU command is not valid", LogLevel::ERROR);
         return std::vector<octet>();

@@ -13,6 +13,7 @@
 #include <certHat.h>
 #include <logger.h>
 #include <pcsc.h>
+#include <cardsecure.h>
 
 
 #include <iterator>
@@ -27,6 +28,11 @@ public:
     int bPACEStart(std::string password, Pwd pwd_type);
     bool chooseApplеt(const octet aid[], size_t aidSize);
     bool chooseMF();
+    bool chooseEF(std::pair<octet, octet> fid);
+
+    // temp
+    std::string getName();
+
 
     bool authorize();
 
