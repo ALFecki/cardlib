@@ -58,7 +58,7 @@ int Bpace::bpaceInit(Pwd pwd_type) {
     auto apdu = APDUEncode(APDU(Cla::Default, Instruction::BPACEInit, 0xC1, 0xA4, initBpace));
     auto resp = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
     if (resp->sw1 != 0x90 && resp->sw1 != 0x63) {
-        logger->log(__FILE__, __LINE__, "Init BPACE failed", LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Init BPACE failed", LogLvl::ERROR);
         return -1;
     }
     return 0;
@@ -73,7 +73,7 @@ int Bpace::bPACEStart(std::string pwd, Pwd pwd_type) {
     err_t err = bignParamsStd(&this->params, "1.2.112.0.2.0.34.101.45.3.1");
 
     if (err != ERR_OK) {
-        logger->log(__FILE__, __LINE__, "Cannot start BPACE due to std params", LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Cannot start BPACE due to std params", LogLvl::ERROR);
         return err;
     }
     prngEchoStart(this->echo, this->params.seed, 8);
@@ -92,7 +92,7 @@ int Bpace::bPACEStart(std::string pwd, Pwd pwd_type) {
     err_t code = bakeBPACEStart(this->state, &this->params, &this->settings, pwd_tmp, pwdSize);
 
     if (code != ERR_OK) {
-        logger->log(__FILE__, __LINE__, "Cannot start bpace", LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Cannot start bpace", LogLvl::ERROR);
         return code;
     }
     return code;
@@ -103,10 +103,10 @@ bool Bpace::chooseApplеt(const octet aid[], size_t aidSize) {
     auto apdu = APDUEncode(APDU(Cla::Default, Instruction::FilesSelect, 0x04, 0x0C, aidVector));
     auto res = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
     if (res->sw1 != 0x90) {
-        logger->log(__FILE__, __LINE__, "Error in choosing applet", LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Error in choosing applet", LogLvl::ERROR);
         return false;
     }
-    logger->log(__FILE__, __LINE__, "Successful choosing applet", LogLevel::INFO);
+    logger->log(__FILE__, __LINE__, "Successful choosing applet", LogLvl::INFO);
     return true;
 }
 
@@ -114,10 +114,10 @@ bool Bpace::chooseMF() {
     auto apdu = APDUEncode(APDU(Cla::Default, Instruction::FilesSelect, 0x00, 0x00));
     auto res = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
     if (res->sw1 != 0x90 && res->sw2 != 0x00) {
-        logger->log(__FILE__, __LINE__, "Error in choosing MF", LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Error in choosing MF", LogLvl::ERROR);
         return false;
     }
-    logger->log(__FILE__, __LINE__, "Successful choosing MF", LogLevel::INFO);
+    logger->log(__FILE__, __LINE__, "Successful choosing MF", LogLvl::INFO);
     return true;
 }
 
@@ -126,21 +126,36 @@ bool Bpace::chooseEF(std::pair<octet, octet> fid) {
     card.initSecure(this->k0);
     auto apdu = card.APDUEncrypt(APDU(Cla::Default, Instruction::ReadData, 0x01, 0x01, {}, 236));
     if (apdu == boost::none) {
-        logger->log(__FILE__, __LINE__, "Error in choosing EF: cannot encrypt APDU", LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Error in choosing EF: cannot encrypt APDU", LogLvl::ERROR);
         return false;
     }
     auto a = APDUEncode(apdu.get());
     a.push_back(0x00);
     auto res = pcsc.decodeResponse(pcsc.sendCommandToCard(a));
     if (res->sw1 != 0x90 && res->sw2 != 0x00) {
-        logger->log(__FILE__, __LINE__, "Error in choosing EF", LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Error in choosing EF", LogLvl::ERROR);
         return false;
     }
-    logger->log(__FILE__, __LINE__, "Successful choosing EF", LogLevel::INFO);
+    logger->log(__FILE__, __LINE__, "Successful choosing EF", LogLvl::INFO);
     return true;
 }
 
 std::string Bpace::getName() {
+    pcsc.dropContext();
+    if (initIdCard()) {
+        enterCanToIdCard("334780");
+        auto DG = getDG1();
+        logger->log(__FILE__, __LINE__, DG, LogLvl::INFO);
+        Json::Value root;
+        Json::Reader reader;
+        bool parsingSuccessful = reader.parse(DG.c_str(), root);
+        root = root["be"];
+        if (!parsingSuccessful) {
+            std::cout << "Failed to parse" << reader.getFormattedErrorMessages();
+            return 0;
+        }
+        logger->log(__FILE__, __LINE__, root.get("family_name", "NONE").asString(), LogLvl::INFO);
+    }
     std::cout << chooseEF({0x01, 0x04});
     return "";
 }
@@ -151,8 +166,7 @@ std::vector<octet> Bpace::createMessage1() {
     err_t code = bakeBPACEStep2(this->out, this->state);
 
     if (code != ERR_OK) {
-        this->logger->log(
-            __FILE__, __LINE__, "Error in step2 BPACE: " + std::to_string(code), LogLevel::ERROR);
+        this->logger->log(__FILE__, __LINE__, "Error in step2 BPACE: " + std::to_string(code), LogLvl::ERROR);
         if (this->blob != nullptr) {
             blobClose(this->blob);
             this->blob = nullptr;
@@ -183,8 +197,7 @@ std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
     int err = bakeBPACEStepG(this->k0, this->state);
 
     if (code != ERR_OK || err != ERR_OK) {
-        this->logger->log(
-            __FILE__, __LINE__, "Error in step4 BPACE: " + std::to_string(code), LogLevel::ERROR);
+        this->logger->log(__FILE__, __LINE__, "Error in step4 BPACE: " + std::to_string(code), LogLvl::ERROR);
         if (this->blob != nullptr) {
             blobClose(this->blob);
             this->blob = nullptr;
@@ -200,14 +213,14 @@ std::vector<octet> Bpace::createMessage3(std::vector<octet> message2) {
 bool Bpace::lastAuthStep(std::vector<octet> message3) {
     int err = bakeBPACEStep6(message3.data(), this->state);
     if (err != ERR_OK) {
-        logger->log(__FILE__, __LINE__, "Error in last step BPACE: " + std::to_string(err), LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Error in last step BPACE: " + std::to_string(err), LogLvl::ERROR);
         // this->isAuthorized = false;
     } else {
         // this->isAuthorized = true;
     }
     err = bakeBPACEStepG(this->k0, this->state);
     if (err != ERR_OK) {
-        logger->log(__FILE__, __LINE__, "Error in last step BPACE: " + std::to_string(err), LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Error in last step BPACE: " + std::to_string(err), LogLvl::ERROR);
         // this->isAuthorized = false;
     } else {
         // this->isAuthorized = true;
@@ -245,10 +258,10 @@ bool Bpace::authorize() {
     auto resp = pcsc.decodeResponse(m2);
 
     if (resp->sw1 != 0x90) {
-        logger->log(__FILE__, __LINE__, "Error in BPACE step 1", LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Error in BPACE step 1", LogLvl::ERROR);
         return false;
     }
-    logger->log(__FILE__, __LINE__, "Successful BPACE step 1", LogLevel::INFO);
+    logger->log(__FILE__, __LINE__, "Successful BPACE step 1", LogLvl::INFO);
 
     auto tempDecoded = derDecode(0x7c, resp->rdf, resp->rdf_len);
     auto apduResp = derDecode(0x81, tempDecoded.data(), tempDecoded.size());
@@ -257,7 +270,7 @@ bool Bpace::authorize() {
     std::copy(apduResp.begin(), apduResp.end(), std::back_inserter(message3));
 
     if (message3.empty()) {
-        this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 2", LogLevel::ERROR);
+        this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 2", LogLvl::ERROR);
         return false;
     }
 
@@ -269,7 +282,7 @@ bool Bpace::authorize() {
     std::vector<octet> M4(apduResp.size());
     std::copy(apduResp.begin(), apduResp.end(), M4.begin());
     if (M4.empty()) {
-        this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 4", LogLevel::ERROR);
+        this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 4", LogLvl::ERROR);
         return false;
     }
 
@@ -279,6 +292,6 @@ bool Bpace::authorize() {
         this->getKey(k0);
         // this->sender->initSecureContext(k0, k1);
     }
-    this->logger->log(__FILE__, __LINE__, "Successful authorization", LogLevel::INFO);
+    this->logger->log(__FILE__, __LINE__, "Successful authorization", LogLvl::INFO);
     return true;
 }

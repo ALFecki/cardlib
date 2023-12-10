@@ -6,7 +6,7 @@
 #include <memory>
 #include <string>
 
-enum class LogLevel { NONE = 0, ERROR = 1, WARN = 2, INFO = 3, DEBUG = 4 };
+enum class LogLvl { NONE = 0, ERROR = 1, WARN = 2, INFO = 3, DEBUG = 4 };
 
 enum class LogOutput { CONSOLE, FILE };
 
@@ -14,15 +14,15 @@ class Logger {
 public:
     static std::shared_ptr<Logger> getInstance();
 
-    void setLogPreferences(std::string logFileName, LogLevel level, LogOutput output);
+    void setLogPreferences(std::string logFileName, LogLvl level, LogOutput output);
 
-    void log(std::string codeFile, int codeLine, std::string message, LogLevel messageLevel);
+    void log(std::string codeFile, int codeLine, std::string message, LogLvl messageLevel);
 
     LogOutput setLogOutput(const std::string& logOutput);
-    LogLevel setLogLevel(const std::string& logLevel);
+    LogLvl setLogLevel(const std::string& logLevel);
 
 private:
-    LogLevel logLevel;
+    LogLvl logLevel;
     LogOutput logOutput = LogOutput::CONSOLE;
     std::ofstream logFile;
 

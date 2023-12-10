@@ -18,7 +18,7 @@ PCSC::PCSC() {
 }
 
 int PCSC::initPCSC() {
-    logger->log(__FILE__, __LINE__, "PCSC initialization started", LogLevel::INFO);
+    logger->log(__FILE__, __LINE__, "PCSC initialization started", LogLvl::INFO);
     LONG result;
 
     result = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL, &this->hContext);
@@ -30,7 +30,7 @@ int PCSC::initPCSC() {
     this->mszReaders = static_cast<LPTSTR>(calloc(this->dwReaders, sizeof(char)));
     result = SCardListReaders(hContext, NULL, mszReaders, &dwReaders);
     CHECK("SCardListReaders", result)
-    logger->log(__FILE__, __LINE__, "Reader name: " + std::string(this->mszReaders), LogLevel::INFO);
+    logger->log(__FILE__, __LINE__, "Reader name: " + std::string(this->mszReaders), LogLvl::INFO);
 
     result = SCardConnect(this->hContext,
                           mszReaders,
@@ -49,7 +49,7 @@ int PCSC::initPCSC() {
             this->pioSendPci = *SCARD_PCI_T1;
             break;
     }
-    logger->log(__FILE__, __LINE__, "Successful pcsc initialization", LogLevel::INFO);
+    logger->log(__FILE__, __LINE__, "Successful pcsc initialization", LogLvl::INFO);
     return 0;
 }
 
@@ -62,7 +62,7 @@ int PCSC::checkReaderStatus() {
                               &this->dwActiveProtocol,
                               this->pbAtr,
                               &dwAtrLen);
-    logger->log(__FILE__, __LINE__, "Successful pcsc intialization", LogLevel::INFO);
+    logger->log(__FILE__, __LINE__, "Successful pcsc intialization", LogLvl::INFO);
     CHECK("SCardStatus", result);
     return result;
 }
@@ -74,7 +74,7 @@ std::vector<octet> PCSC::sendCommandToCard(std::vector<octet> cmd) {
     result = SCardTransmit(
         this->hCard, &this->pioSendPci, cmd.data(), cmd.size(), NULL, response, &responseLength);
     if (result != SCARD_S_SUCCESS) {
-        logger->log(__FILE__, __LINE__, "Command sending error: " + std::to_string(result), LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Command sending error: " + std::to_string(result), LogLvl::ERROR);
         return std::vector<octet>();
     }
     return std::vector<octet>(response, response + responseLength);
@@ -85,4 +85,8 @@ std::shared_ptr<apdu_resp_t> PCSC::decodeResponse(std::vector<octet> response) {
     apduRespDec(resp, response.data(), response.size());
     std::shared_ptr<apdu_resp_t> apduResp(resp);
     return apduResp;
+}
+
+void PCSC::dropContext() {
+    SCardReleaseContext(this->hContext);
 }

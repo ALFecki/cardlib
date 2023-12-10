@@ -21,10 +21,10 @@ void CardSecure::initSecure(octet key0[32]) {
     err_t err = beltKRP(this->key2, 0x20, key0, 0x20, level.data(), header.data());
 
     if (err != ERR_OK) {
-        logger->log(__FILE__, __LINE__, "Getting key2 error: " + err, LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Getting key2 error: " + err, LogLvl::ERROR);
         return;
     }
-    logger->log(__FILE__, __LINE__, "Successful keys init" + err, LogLevel::INFO);
+    logger->log(__FILE__, __LINE__, "Successful keys init" + err, LogLvl::INFO);
 }
 
 boost::optional<APDU> CardSecure::APDUEncrypt(APDU command) {
@@ -37,17 +37,16 @@ boost::optional<APDU> CardSecure::APDUEncrypt(APDU command) {
     if (!command.cdf.empty()) {
         err_t err = beltCFBEncr(y.data(), command.cdf.data(), command.cdf_len, this->key2, 32, iv.data());
         if (err != ERR_OK) {
-            logger->log(__FILE__, __LINE__, "CFB encryption error: " + err, LogLevel::ERROR);
+            logger->log(__FILE__, __LINE__, "CFB encryption error: " + err, LogLvl::ERROR);
             return boost::none;
         }
     }
     auto z = std::vector<octet>();
-    
+
     if (!y.empty()) {
         y.insert(y.begin(), 0x02);
         z = derEncode(0x87, y);
     }
-
 
     if (command.le != boost::none) {
         auto der = derEncode(0x97, std::vector<octet>{static_cast<octet>(command.le.get())});
@@ -59,7 +58,6 @@ boost::optional<APDU> CardSecure::APDUEncrypt(APDU command) {
     octet* stack = new octet[beltHMAC_keep()];
     this->state = (void*)stack;
     beltHMACStart(this->state, this->key1, 32);
-    
 
     std::vector<octet> mac_payload(iv);
     mac_payload.insert(mac_payload.end(), enc_iy.begin(), enc_iy.end());
@@ -70,7 +68,7 @@ boost::optional<APDU> CardSecure::APDUEncrypt(APDU command) {
     // err_t err = beltHMAC(t.data(), mac_payload.data(), mac_payload.size(), key1, 32);
 
     if (!beltHMACStepV2(t.data(), 8, this->state)) {
-        logger->log(__FILE__, __LINE__, "HMAC encryption error", LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "HMAC encryption error", LogLvl::ERROR);
         return boost::none;
     }
     auto enc_t = derEncode(0x8E, t);

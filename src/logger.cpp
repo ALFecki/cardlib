@@ -5,7 +5,7 @@ std::shared_ptr<Logger> Logger::loggerInstance;
 // auto logger = Logger::getInstance();
 
 void Logger::setLogPreferences(std::string logFileName = "",
-                               LogLevel level = LogLevel::ERROR,
+                               LogLvl level = LogLvl::ERROR,
                                LogOutput output = LogOutput::CONSOLE) {
     this->logLevel = level;
     this->logOutput = output;
@@ -30,20 +30,20 @@ std::shared_ptr<Logger> Logger::getInstance() {
 void Logger::log(std::string codeFile,
                  int codeLine,
                  std::string message,
-                 LogLevel messageLevel = LogLevel::DEBUG) {
+                 LogLvl messageLevel = LogLvl::DEBUG) {
     std::string logType;
     // Set Log Level Name
     switch (messageLevel) {
-        case LogLevel::DEBUG:
+        case LogLvl::DEBUG:
             logType = "DEBUG: ";
             break;
-        case LogLevel::INFO:
+        case LogLvl::INFO:
             logType = "INFO: ";
             break;
-        case LogLevel::WARN:
+        case LogLvl::WARN:
             logType = "WARN: ";
             break;
-        case LogLevel::ERROR:
+        case LogLvl::ERROR:
             logType = "ERROR: ";
             break;
         default:
@@ -56,17 +56,17 @@ void Logger::log(std::string codeFile,
     logMessage(message);
 }
 
-LogLevel Logger::setLogLevel(const std::string& logLevel) {
+LogLvl Logger::setLogLevel(const std::string& logLevel) {
     if (logLevel == "DEBUG") {
-        return LogLevel::DEBUG;
+        return LogLvl::DEBUG;
     } else if (logLevel == "INFO") {
-        return LogLevel::INFO;
+        return LogLvl::INFO;
     } else if (logLevel == "WARN") {
-        return LogLevel::ERROR;
+        return LogLvl::ERROR;
     } else if (logLevel == "ERROR") {
-        return LogLevel::ERROR;
+        return LogLvl::ERROR;
     }
-    return LogLevel::NONE;
+    return LogLvl::NONE;
 }
 
 LogOutput Logger::setLogOutput(const std::string& logOutput) {

@@ -14,7 +14,7 @@ std::vector<octet> derEncode(u32 tag, const std::vector<octet>& data) {
     octet* apduCmd = new octet[2048];
     auto count = derEnc(apduCmd, tag, data.data(), data.size());
     if (count == SIZE_MAX) {
-        logger->log(__FILE__, __LINE__, "Error der encode", LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Error der encode", LogLvl::ERROR);
         throw -1;
     }
 
@@ -40,7 +40,7 @@ std::vector<octet> APDUEncode(APDU command) {
     int dataSize = command.cdf.size();
 
     if (dataSize > std::numeric_limits<unsigned short int>::max() - 1) {
-        logger->log(__FILE__, __LINE__, "Cannot encode APDU, data is too long", LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "Cannot encode APDU, data is too long", LogLvl::ERROR);
         return std::vector<octet>();
     }
 
@@ -57,7 +57,7 @@ std::vector<octet> APDUEncode(APDU command) {
         apduCmd->rdf_len = command.le.get();
     }
     if (!apduCmdIsValid(apduCmd)) {
-        logger->log(__FILE__, __LINE__, "APDU command is not valid", LogLevel::ERROR);
+        logger->log(__FILE__, __LINE__, "APDU command is not valid", LogLvl::ERROR);
         return std::vector<octet>();
     }
     size_t apduSize = apduCmdEnc(0, apduCmd);

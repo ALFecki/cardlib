@@ -9,12 +9,14 @@
 #include <bee2/crypto/bake.h>
 #include <bee2/crypto/bign.h>
 
+#include <json/json.h>
+
 #include <apducmd.h>
 #include <certHat.h>
 #include <logger.h>
 #include <pcsc.h>
 #include <cardsecure.h>
-
+#include <utils.h>
 
 #include <iterator>
 #include <string>
