@@ -9,7 +9,6 @@
 #include <bee2/core/prng.h>
 #include <bee2/crypto/bake.h>
 #include <bee2/crypto/bign.h>
-#include <cardsecure.h>
 #include <certHat.h>
 #include <logger.h>
 #include <pcsc.h>

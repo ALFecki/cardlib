@@ -170,7 +170,7 @@ std::string Bpace::getSex() {
 std::string Bpace::getIdentityNumber() {
     pcsc.dropContext();
     if (initIdCard()) {
-        enterCanToIdCard("334780");
+        enterCanToIdCard(this->password);
         auto DG = getDG1();
         logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
         return DG;
@@ -184,7 +184,8 @@ std::vector<octet> Bpace::createMessage1() {
     err_t code = bakeBPACEStep2(this->out, this->state);
 
     if (code != ERR_OK) {
-        this->logger->log(__FILE__, __LINE__, "Error in step2 BPACE: " + std::to_string(code), LogLvl::ERROR);
+        this->logger->log(
+            __FILE__, __LINE__, "Error in BPACE step 2: " + std::to_string(code), LogLvl::ERROR);
         if (this->blob != nullptr) {
             blobClose(this->blob);
             this->blob = nullptr;
@@ -193,15 +194,16 @@ std::vector<octet> Bpace::createMessage1() {
     }
 
     std::copy(this->out, this->out + (this->params.l / 8), back_inserter(message1));
-    try {
-        message1 = derEncode(0x7c, derEncode(0x80, message1));
-    } catch (int code) {
+    message1 = derEncode(0x7c, derEncode(0x80, message1));
+    if (message1.empty()) {
+        logger->log(__FILE__, __LINE__, "Internal error", LogLvl::ERROR);
         if (this->blob != nullptr) {
             blobClose(this->blob);
             this->blob = nullptr;
         }
         return message1;
     }
+
     return APDUEncode(APDU(Cla::Chained, Instruction::BPACESteps, 0x00, 0x00, message1));
 }
 
@@ -232,16 +234,12 @@ bool Bpace::lastAuthStep(std::vector<octet> message3) {
     int err = bakeBPACEStep6(message3.data(), this->state);
     if (err != ERR_OK) {
         logger->log(__FILE__, __LINE__, "Error in last step BPACE: " + std::to_string(err), LogLvl::ERROR);
-        // this->isAuthorized = false;
-    } else {
-        // this->isAuthorized = true;
+        return false;
     }
     err = bakeBPACEStepG(this->k0, this->state);
     if (err != ERR_OK) {
         logger->log(__FILE__, __LINE__, "Error in last step BPACE: " + std::to_string(err), LogLvl::ERROR);
-        // this->isAuthorized = false;
-    } else {
-        // this->isAuthorized = true;
+        return false;
     }
 
     if (this->blob != nullptr) {
@@ -342,7 +340,6 @@ bool Bpace::authorize() {
     logger->log(__FILE__, __LINE__, "Successful BPACE step 4", LogLvl::INFO);
 
     if (!lastAuthStep(M4)) {
-        logger->log(__FILE__, __LINE__, "Error in BPACE", LogLvl::ERROR);
         this->logger->log(__FILE__, __LINE__, "Authorization failed. Last authetication step", LogLvl::DEBUG);
         return false;
     }

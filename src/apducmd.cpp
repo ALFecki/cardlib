@@ -14,8 +14,8 @@ std::vector<octet> derEncode(u32 tag, const std::vector<octet>& data) {
     octet* apduCmd = new octet[2048];
     auto count = derEnc(apduCmd, tag, data.data(), data.size());
     if (count == SIZE_MAX) {
-        logger->log(__FILE__, __LINE__, "Error der encode", LogLvl::ERROR);
-        throw -1;
+        logger->log(__FILE__, __LINE__, "Error in DER encode", LogLvl::WARN);
+        return std::vector<octet>();
     }
 
     std::vector<octet> res(count);
@@ -28,7 +28,7 @@ std::vector<octet> derDecode(u32 tag, octet* data, size_t len) {
     size_t decodedSize;
     auto count = derDec2(&decoded, &decodedSize, data, len, tag);
     if (count == SIZE_MAX) {
-        std::cout << "Error der decoding" << std::endl;
+        logger->log(__FILE__, __LINE__, "Error in DER decode", LogLvl::WARN);
         return std::vector<octet>();
     }
     std::vector<octet> res(decodedSize);
