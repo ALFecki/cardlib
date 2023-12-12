@@ -9,8 +9,6 @@
 #include <bee2/crypto/bake.h>
 #include <bee2/crypto/bign.h>
 
-#include <json/json.h>
-
 #include <apducmd.h>
 #include <certHat.h>
 #include <logger.h>
@@ -34,7 +32,9 @@ public:
 
     // temp
     std::string getName();
-
+    std::string getSex();
+    std::string getBirthDate();
+    std::string getIdentityNumber();
 
     bool authorize();
 

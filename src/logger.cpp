@@ -32,26 +32,33 @@ void Logger::log(std::string codeFile,
                  std::string message,
                  LogLvl messageLevel = LogLvl::DEBUG) {
     std::string logType;
+    std::string colorCode;
+    std::string resetColorCode = "\033[0m";
     // Set Log Level Name
     switch (messageLevel) {
         case LogLvl::DEBUG:
             logType = "DEBUG: ";
+            colorCode = "\033[1;34m";
             break;
         case LogLvl::INFO:
             logType = "INFO: ";
+            colorCode = "\033[1;32m";
             break;
         case LogLvl::WARN:
             logType = "WARN: ";
+            colorCode = "\033[1;33m";
             break;
         case LogLvl::ERROR:
             logType = "ERROR: ";
+            colorCode = "\033[1;31m";
             break;
         default:
             logType = "NONE: ";
+            colorCode = "\033[0m";
             break;
     }
     codeFile += " : " + std::to_string(codeLine) + " : ";
-    message = logType + codeFile + message;
+    message = colorCode + logType + resetColorCode + codeFile + message;
 
     logMessage(message);
 }

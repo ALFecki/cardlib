@@ -1,5 +1,6 @@
 #include <utils.h>
 
+
 #define CHECK(f, rv)             \
     if (SCARD_S_SUCCESS != rv) { \
         printf(f ": %ld\n", rv); \
@@ -12,6 +13,7 @@ LPTSTR mszReader;
 DWORD dwReader, dwActiveProto;
 SCARDHANDLE hCardCtx;
 IdCard* ctx_eid = 0;
+auto loggr = Logger::getInstance();
 
 int32_t transmit(const void* ctx_data, const Data* data, Data* response) {
     SCARDHANDLE hCard = *(SCARDHANDLE*)ctx_data;
@@ -41,8 +43,6 @@ int init_pcsc() {
     mszReader = static_cast<LPTSTR>(calloc(dwReader, sizeof(char)));
     rv = SCardListReaders(hCtx, NULL, mszReader, &dwReader);
     CHECK("SCardListReaders", rv)
-
-    printf("reader name: %s\n", mszReader);
 
     rv = SCardConnect(hCtx,
                       mszReader,
@@ -85,22 +85,71 @@ bool initIdCard() {
 
 std::string getDG1() {
     Data* DG1 = new Data;
-    int32_t errorDG1 = id_kta_get_dg3(ctx_eid, (const Data**)&DG1);
+    int32_t errorDG1 = id_kta_get_dg1(ctx_eid, (const Data**)&DG1);
     if (errorDG1) {
+        loggr->log(__FILE__, __LINE__, "Cannot get data groups", LogLvl::ERROR);
     } else {
-        std::string info(reinterpret_cast<char*>(DG1->data));
+        loggr->log(__FILE__, __LINE__, "Successful choosing EF", LogLvl::INFO);
+        loggr->log(__FILE__, __LINE__, "Data groups received from card ", LogLvl::INFO);
+        auto d = std::vector<uint8_t>(DG1->data, DG1->data + DG1->len);
+        std::string info(reinterpret_cast<char*>(d.data()));
+        loggr->log(__FILE__, __LINE__, "Successful decryption data groups", LogLvl::INFO);
         return info;
     }
+    delete DG1;
+}
+
+std::string getDG3() {
+    Data* DG3 = new Data;
+    int32_t errorDG1 = id_kta_get_dg3(ctx_eid, (const Data**)&DG3);
+    if (errorDG1) {
+        loggr->log(__FILE__, __LINE__, "Cannot get data groups", LogLvl::ERROR);
+    } else {
+        loggr->log(__FILE__, __LINE__, "Successful choosing EF", LogLvl::INFO);
+        loggr->log(__FILE__, __LINE__, "Data groups received from card ", LogLvl::INFO);
+        std::string info(reinterpret_cast<char*>(DG3->data));
+        loggr->log(__FILE__, __LINE__, "Successful decryption data groups", LogLvl::INFO);
+        return info;
+    }
+    delete DG3;
+}
+
+std::string getDG4() {
+    Data* DG4 = new Data;
+    int32_t errorDG1 = id_kta_get_dg4(ctx_eid, (const Data**)&DG4);
+    if (errorDG1) {
+        loggr->log(__FILE__, __LINE__, "Cannot get data groups", LogLvl::ERROR);
+    } else {
+        loggr->log(__FILE__, __LINE__, "Successful choosing EF", LogLvl::INFO);
+        loggr->log(__FILE__, __LINE__, "Data groups received from card ", LogLvl::INFO);
+        auto d = std::vector<uint8_t>(DG4->data, DG4->data + DG4->len);
+        std::string info(reinterpret_cast<char*>(d.data()));
+        loggr->log(__FILE__, __LINE__, "Successful decryption data groups", LogLvl::INFO);
+        return info;
+    }
+    delete DG4;
+}
+
+std::string getDG5() {
+    Data* DG5 = new Data;
+    int32_t errorDG1 = id_kta_get_dg5(ctx_eid, (const Data**)&DG5);
+    if (errorDG1) {
+        loggr->log(__FILE__, __LINE__, "Cannot get data groups", LogLvl::ERROR);
+    } else {
+        loggr->log(__FILE__, __LINE__, "Successful choosing EF", LogLvl::INFO);
+        loggr->log(__FILE__, __LINE__, "Data groups received from card ", LogLvl::INFO);
+        std::string info(reinterpret_cast<char*>(DG5->data));
+        loggr->log(__FILE__, __LINE__, "Successful decryption data groups", LogLvl::INFO);
+        return info;
+    }
+    delete DG5;
 }
 
 bool enterCanToIdCard(const std::string& can) {
-#ifdef Q_OS_ANDROID
 
-#else
     if (ctx_eid == 0) {
         initIdCard();
     }
-#endif
     int32_t can_error =
         id_kta_can_auth(ctx_eid,
                         can.c_str(),
@@ -116,4 +165,10 @@ bool enterCanToIdCard(const std::string& can) {
         return false;
     }
     return true;
+}
+
+void dropCtx() {
+    if (ctx_eid != 0) {
+        id_kta_drop_ctx(ctx_eid);
+    }
 }
