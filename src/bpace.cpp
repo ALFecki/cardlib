@@ -2,7 +2,7 @@
 
 #include <iomanip>
 
-Bpace::Bpace(std::string password, Pwd pwd_type) {
+Bpace::Bpace(std::string password, pwd_t pwd_type) : password(password), pwdType(pwd_type) {
     this->logger = Logger::getInstance();
     this->logger->setLogOutput("CONSOLE");
     this->logger->setLogLevel("INFO");
@@ -10,22 +10,15 @@ Bpace::Bpace(std::string password, Pwd pwd_type) {
     this->chooseApplеt(AID_KTA_APPLET, sizeof(AID_KTA_APPLET));
 
     this->chooseMF();
-
-    auto status = this->bPACEStart(password, pwd_type);
-    if (status != ERR_OK) {
-        std::cerr << "unable to init bpace: " << status;
-        if (this->blob != nullptr) {
-            blobClose(this->blob);
-            this->blob = nullptr;
-        }
-    }
 }
 
-int Bpace::bpaceInit(Pwd pwd_type) {
+int Bpace::bpaceInit() {
     std::vector<octet> initBpace;
+
     auto encoded = derEncode(0x80, std::vector<octet>(OID_BPACE, OID_BPACE + sizeof(OID_BPACE)));
     std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
-    encoded = derEncode(0x83, std::vector<octet>(1, static_cast<octet>(pwd_type)));
+
+    encoded = derEncode(0x83, std::vector<octet>(1, static_cast<octet>(this->pwdType)));
     std::copy(encoded.begin(), encoded.end(), std::back_inserter(initBpace));
 
     auto certHatEsign = CertHAT(std::vector<octet>(OID_ESIGN, OID_ESIGN + sizeof(OID_ESIGN)),
@@ -64,8 +57,8 @@ int Bpace::bpaceInit(Pwd pwd_type) {
     return 0;
 }
 
-int Bpace::bPACEStart(std::string pwd, Pwd pwd_type) {
-    auto error = bpaceInit(pwd_type);
+int Bpace::bPACEStart() {
+    auto error = bpaceInit();
     if (error != ERR_OK) {
         return error;
     }
@@ -86,8 +79,8 @@ int Bpace::bPACEStart(std::string pwd, Pwd pwd_type) {
 
     octet pwd_tmp[16];
 
-    size_t pwdSize = pwd.length();
-    std::copy(pwd.begin(), pwd.end(), pwd_tmp);
+    size_t pwdSize = this->password.length();
+    std::copy(this->password.begin(), this->password.end(), pwd_tmp);
 
     err_t code = bakeBPACEStart(this->state, &this->params, &this->settings, pwd_tmp, pwdSize);
 
@@ -154,22 +147,22 @@ std::string Bpace::getName() {
 
 std::string Bpace::getBirthDate() {
     // pcsc.dropContext();
-        // if (initIdCard()) {
-        // enterCanToIdCard("334780");
-        auto DG = getDG4();
-        logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
-        return DG;
+    // if (initIdCard()) {
+    // enterCanToIdCard("334780");
+    auto DG = getDG4();
+    logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
+    return DG;
     // }
     return "";
 }
 
 std::string Bpace::getSex() {
     // pcsc.dropContext();
-        // if (initIdCard()) {
-        // enterCanToIdCard("334780");
-        auto DG = getDG5();
-        logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
-        return DG;
+    // if (initIdCard()) {
+    // enterCanToIdCard("334780");
+    auto DG = getDG5();
+    logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
+    return DG;
     // }
     return "";
 }
@@ -259,14 +252,20 @@ bool Bpace::lastAuthStep(std::vector<octet> message3) {
     return true;
 }
 
-std::vector<octet> Bpace::sendM1() {
-    return pcsc.sendCommandToCard(this->createMessage1());
+std::shared_ptr<apdu_resp_t> Bpace::sendM1() {
+    auto message1 = this->createMessage1();
+    if (message1.empty()) {
+        return nullptr;
+    }
+    return pcsc.decodeResponse(pcsc.sendCommandToCard(message1));
 }
 
-std::vector<octet> Bpace::sendM3(std::vector<octet> message2) {
+std::shared_ptr<apdu_resp_t> Bpace::sendM3(std::vector<octet> message2) {
     auto mess = this->createMessage3(message2);
-    // mess.push_back(0x0c);
-    return pcsc.sendCommandToCard(mess);
+    if (mess.empty()) {
+        return nullptr;
+    }
+    return pcsc.decodeResponse(pcsc.sendCommandToCard(mess));
 }
 
 void Bpace::getKey(octet* key0) {
@@ -278,12 +277,26 @@ std::vector<octet> Bpace::getKey() {
 }
 
 bool Bpace::authorize() {
-    auto m2 = this->sendM1();
+    auto status = this->bPACEStart();
+    if (status != ERR_OK) {
+        logger->log(__FILE__, __LINE__, "Unable to init BPACE: " + status, LogLvl::ERROR);
+        if (this->blob != nullptr) {
+            blobClose(this->blob);
+            this->blob = nullptr;
+        }
+        return false;
+    }
 
-    auto resp = pcsc.decodeResponse(m2);
+    auto resp = this->sendM1();
+    if (!resp) {
+        logger->log(__FILE__, __LINE__, "Error in BPACE step 1", LogLvl::ERROR);
+        this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 2", LogLvl::DEBUG);
+        return false;
+    }
 
     if (resp->sw1 != 0x90) {
         logger->log(__FILE__, __LINE__, "Error in BPACE step 1", LogLvl::ERROR);
+        logger->log(__FILE__, __LINE__, "Invalid card", LogLvl::DEBUG);
         return false;
     }
     logger->log(__FILE__, __LINE__, "Successful BPACE step 1", LogLvl::INFO);
@@ -301,8 +314,19 @@ bool Bpace::authorize() {
 
     logger->log(__FILE__, __LINE__, "Successful BPACE step 2", LogLvl::INFO);
 
-    auto m4 = this->sendM3(message3);
-    resp = pcsc.decodeResponse(m4);
+    resp = this->sendM3(message3);
+    if (!resp) {
+        logger->log(__FILE__, __LINE__, "Error in BPACE step 3", LogLvl::ERROR);
+        this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 3", LogLvl::DEBUG);
+        return false;
+    }
+
+    if (resp->sw1 != 0x90) {
+        logger->log(__FILE__, __LINE__, "Error in BPACE step 3", LogLvl::ERROR);
+        logger->log(__FILE__, __LINE__, "Invalid context", LogLvl::DEBUG);
+        return false;
+    }
+
     tempDecoded = derDecode(0x7c, resp->rdf, resp->rdf_len);
     apduResp = derDecode(0x83, tempDecoded.data(), tempDecoded.size());
 
@@ -311,18 +335,20 @@ bool Bpace::authorize() {
     std::vector<octet> M4(apduResp.size());
     std::copy(apduResp.begin(), apduResp.end(), M4.begin());
     if (M4.empty()) {
-        this->logger->log(__FILE__, __LINE__, "Authorization failed. Message 4", LogLvl::ERROR);
+        logger->log(__FILE__, __LINE__, "Error in BPACE step 4", LogLvl::ERROR);
+        this->logger->log(__FILE__, __LINE__, "Invalid password", LogLvl::DEBUG);
         return false;
     }
-
     logger->log(__FILE__, __LINE__, "Successful BPACE step 4", LogLvl::INFO);
 
-    bool isAuthorized = lastAuthStep(M4);
-    if (isAuthorized) {
-        octet k0[32];
-        this->getKey(k0);
-        // this->sender->initSecureContext(k0, k1);
+    if (!lastAuthStep(M4)) {
+        logger->log(__FILE__, __LINE__, "Error in BPACE", LogLvl::ERROR);
+        this->logger->log(__FILE__, __LINE__, "Authorization failed. Last authetication step", LogLvl::DEBUG);
+        return false;
     }
+    octet k0[32];
+    this->getKey(k0);
+    this->secure.initSecure(k0);
     this->logger->log(__FILE__, __LINE__, "Successful authorization", LogLvl::INFO);
     this->logger->log(__FILE__, __LINE__, "Secured connection initialized", LogLvl::DEBUG);
     return true;

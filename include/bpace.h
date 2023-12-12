@@ -1,6 +1,7 @@
 #ifndef BPACE_H
 #define BPACE_H
 
+#include <apducmd.h>
 #include <bee2/core/apdu.h>
 #include <bee2/core/blob.h>
 #include <bee2/core/der.h>
@@ -8,24 +9,22 @@
 #include <bee2/core/prng.h>
 #include <bee2/crypto/bake.h>
 #include <bee2/crypto/bign.h>
-
-#include <apducmd.h>
+#include <cardsecure.h>
 #include <certHat.h>
 #include <logger.h>
 #include <pcsc.h>
-#include <cardsecure.h>
 #include <utils.h>
-
+#include <cardsecure.h>
 #include <iterator>
-#include <string>
 #include <span>
+#include <string>
 
 class Bpace {
 public:
-    Bpace(std::string password, Pwd pwd_type);
+    Bpace(std::string password, pwd_t pwd_type);
 
-    int bpaceInit(Pwd pwd_type);
-    int bPACEStart(std::string password, Pwd pwd_type);
+    int bpaceInit();
+    int bPACEStart();
     bool chooseApplеt(const octet aid[], size_t aidSize);
     bool chooseMF();
     bool chooseEF(std::pair<octet, octet> fid);
@@ -40,8 +39,8 @@ public:
 
     std::vector<octet> createMessage1();
     std::vector<octet> createMessage3(std::vector<octet> message2);
-    std::vector<octet> sendM1();
-    std::vector<octet> sendM3(std::vector<octet> message2);
+    std::shared_ptr<apdu_resp_t> sendM1();
+    std::shared_ptr<apdu_resp_t> sendM3(std::vector<octet> message2);
     bool lastAuthStep(std::vector<octet> message3);
     std::vector<octet> getKey();
     void getKey(octet *key0);
@@ -66,10 +65,12 @@ private:
                               .rng_state = echo};
 
     PCSC pcsc;
+    CardSecure secure = CardSecure();
+    std::string password;
+    pwd_t pwdType;
 
 
     std::shared_ptr<Logger> logger;
-
 };
 
 #endif

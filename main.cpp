@@ -7,7 +7,7 @@
 #include "bpace.h"
 
 int main() {
-    // Bpace bpace = Bpace("334780", Pwd::CAN);
+    // Bpace bpace = Bpace("334780", pwd_t::CAN);
     // std::cout << bpace.authorize() << std::endl;
 
     // CardSecure card = CardSecure();
@@ -37,7 +37,7 @@ int main() {
                 if (password.size() < 6) {
                     continue;
                 }
-                Bpace bpace = Bpace(password, Pwd::CAN);
+                Bpace bpace = Bpace(password, pwd_t::CAN);
                 bpace.authorize();
 
                 std::string json_dg = bpace.getName();
@@ -116,7 +116,7 @@ int main() {
                 if (password.size() < 6) {
                     continue;
                 }
-                Bpace bpace = Bpace(password, Pwd::PIN);
+                Bpace bpace = Bpace(password, pwd_t::PIN);
                 bpace.authorize();
 
                 std::cout << "Enter PIN2 code: ";
@@ -125,7 +125,6 @@ int main() {
                 if (password.size() < 6) {
                     continue;
                 }
-
 
                 std::string json_dg = bpace.getIdentityNumber();
 
@@ -142,7 +141,6 @@ int main() {
                 t.endOfRow();
                 t.setAlignment(2, TextTable::Alignment::RIGHT);
                 std::cout << t;
-
             }
         }
     }
