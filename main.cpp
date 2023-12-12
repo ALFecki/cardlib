@@ -38,7 +38,10 @@ int main() {
                     continue;
                 }
                 Bpace bpace = Bpace(password, pwd_t::CAN);
-                bpace.authorize();
+                if (!bpace.authorize()) {
+                    std::cout << "Error in authorization, try again." << std::endl;
+                    continue;
+                }
 
                 std::string json_dg = bpace.getName();
 
@@ -105,6 +108,7 @@ int main() {
 
                 t.setAlignment(2, TextTable::Alignment::RIGHT);
                 std::cout << t;
+                break;
                 // CardSecure card = CardSecure();
                 // card.initSecure(bpace.getKey().data());
             }
@@ -117,16 +121,21 @@ int main() {
                     continue;
                 }
                 Bpace bpace = Bpace(password, pwd_t::PIN);
-                bpace.authorize();
+                if (!bpace.authorize()) {
+                    std::cout << "Error in authorization, try again.";
+                    continue;
+                }
+                
 
+                password.clear();
                 std::cout << "Enter PIN2 code: ";
-
                 std::getline(std::cin, password);
+
                 if (password.size() < 6) {
                     continue;
                 }
 
-                std::string json_dg = bpace.getIdentityNumber();
+                std::string json_dg = bpace.getIdentityNumber(password);
 
                 auto t = TextTable('-', '|', '+');
                 t.add("Data group");
@@ -141,6 +150,7 @@ int main() {
                 t.endOfRow();
                 t.setAlignment(2, TextTable::Alignment::RIGHT);
                 std::cout << t;
+                break;
             }
         }
     }

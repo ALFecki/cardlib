@@ -167,10 +167,11 @@ std::string Bpace::getSex() {
     return "";
 }
 
-std::string Bpace::getIdentityNumber() {
+std::string Bpace::getIdentityNumber(std::string pin2) {
     pcsc.dropContext();
     if (initIdCard()) {
-        enterCanToIdCard(this->password);
+        enterPin1ToIdCard(this->password);
+        // enterPin2ToIdCard(pin2);
         auto DG = getDG1();
         logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
         return DG;

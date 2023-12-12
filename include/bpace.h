@@ -32,7 +32,7 @@ public:
     std::string getName();
     std::string getSex();
     std::string getBirthDate();
-    std::string getIdentityNumber();
+    std::string getIdentityNumber(std::string pin2  );
 
     bool authorize();
 

@@ -1,6 +1,5 @@
 #include <utils.h>
 
-
 #define CHECK(f, rv)             \
     if (SCARD_S_SUCCESS != rv) { \
         printf(f ": %ld\n", rv); \
@@ -146,7 +145,6 @@ std::string getDG5() {
 }
 
 bool enterCanToIdCard(const std::string& can) {
-
     if (ctx_eid == 0) {
         initIdCard();
     }
@@ -165,6 +163,85 @@ bool enterCanToIdCard(const std::string& can) {
         return false;
     }
     return true;
+}
+
+bool enterPin1ToIdCard(const std::string& pin) {
+    bool isConnected = false;
+
+    if (ctx_eid == 0) {
+        initIdCard();
+        isConnected = true;
+    } else {
+        isConnected = true;
+    }
+
+    if (isConnected) {
+        int32_t err_pin_auth =
+            id_kta_pin_auth(ctx_eid,
+                            pin.c_str(),
+                            (int32_t)EidAccess::DG1 | (int32_t)EidAccess::DG2 | (int32_t)EidAccess::DG3 |
+                                (int32_t)EidAccess::DG4 | (int32_t)EidAccess::DG5,
+                            EsignAccess::BasicMode,
+                            2);
+
+        // qDebug() << err_pin_auth;
+        // switch (err_pin_auth) {
+        //     case 0x0:
+        //         break;
+        //     case 0x6983:
+        //         qDebug() << "Error: Пароль частично заблокирован";
+        //         close_idcard();
+        //         return false;
+        //     case 0x6985:
+        //         qDebug() << "Error: Пароль приостановлен";
+        //         close_idcard();
+        //         return false;
+        //     case 0x63C2:
+        //         qDebug() << "Error: Ошибка ПИН кода 1. Осталось 2 попытки";
+        //         close_idcard();
+        //         return false;
+        //     case 0x63C1:
+        //         qDebug() << "Error: Ошибка ПИН кода 1. Осталось 1 попытка";
+        //         close_idcard();
+        //         return false;
+        //     default:
+        //         qDebug() << "Error: Ошибка пинкода";
+        //         close_idcard();
+        //         return false;
+        // }
+        int32_t err_select_esign = id_kta_select_eid(ctx_eid);
+        if (err_select_esign != 0) {
+            return false;
+        }
+        return true;
+    } else {
+        id_kta_drop_ctx(ctx_eid);
+        return false;
+    }
+}
+
+bool enterPin2ToIdCard(const std::string& pin) {
+    bool isConnected = false;
+
+    if (ctx_eid == 0) {
+        isConnected = false;
+    } else {
+        isConnected = true;
+    }
+
+    if (isConnected) {
+        int32_t err_pin2_verify = id_kta_pin2_verify(ctx_eid, pin.c_str());
+        std::cout << err_pin2_verify;
+        if (err_pin2_verify != 0) {
+            id_kta_drop_ctx(ctx_eid);
+            return false;
+        }
+        return true;
+
+    } else {
+        id_kta_drop_ctx(ctx_eid);
+        return false;
+    }
 }
 
 void dropCtx() {
