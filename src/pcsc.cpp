@@ -2,19 +2,10 @@
 
 #include <iomanip>
 
-#define CHECK(f, rv)             \
-    if (SCARD_S_SUCCESS != rv) { \
-        printf(f ": %ld\n", rv); \
-        return -1;               \
-    }
-
-// auto logger = Logger::getInstance();
-
 PCSC::PCSC() {
     this->logger = Logger::getInstance();
     this->logger->setLogOutput("CONSOLE");
     this->logger->setLogLevel("INFO");
-    this->initPCSC();
 }
 
 int PCSC::initPCSC() {
@@ -22,14 +13,24 @@ int PCSC::initPCSC() {
     LONG result;
 
     result = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL, &this->hContext);
-    CHECK("SCardEstablishContext", result)
+    if (result != SCARD_S_SUCCESS) {
+        logger->log(__FILE__, __LINE__, "Cannot initialize card context", LogLvl::WARN);
+        return -1;
+    }
 
     result = SCardListReaders(this->hContext, NULL, NULL, &this->dwReaders);
-    CHECK("SCardListReaders", result)
+    if (result != SCARD_S_SUCCESS) {
+        logger->log(__FILE__, __LINE__, "Cannot get reader list", LogLvl::WARN);
+        return -1;
+    }
 
     this->mszReaders = static_cast<LPTSTR>(calloc(this->dwReaders, sizeof(char)));
     result = SCardListReaders(hContext, NULL, mszReaders, &dwReaders);
-    CHECK("SCardListReaders", result)
+    if (result != SCARD_S_SUCCESS) {
+        logger->log(__FILE__, __LINE__, "Cannot get reader", LogLvl::WARN);
+        return -1;
+    }
+
     logger->log(__FILE__, __LINE__, "Reader name: " + std::string(this->mszReaders), LogLvl::INFO);
 
     result = SCardConnect(this->hContext,
@@ -38,7 +39,10 @@ int PCSC::initPCSC() {
                           SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
                           &hCard,
                           &dwActiveProtocol);
-    CHECK("SCardConnect", result)
+    if (result != SCARD_S_SUCCESS) {
+        logger->log(__FILE__, __LINE__, "Cannot get card context", LogLvl::WARN);
+        return -1;
+    }
 
     switch (dwActiveProtocol) {
         case SCARD_PROTOCOL_T0:
@@ -49,7 +53,9 @@ int PCSC::initPCSC() {
             this->pioSendPci = *SCARD_PCI_T1;
             break;
     }
-    logger->log(__FILE__, __LINE__, "Successful pcsc initialization", LogLvl::INFO);
+
+    this->checkReaderStatus();
+    logger->log(__FILE__, __LINE__, "Successful card context initialization", LogLvl::INFO);
     return 0;
 }
 
@@ -62,8 +68,16 @@ int PCSC::checkReaderStatus() {
                               &this->dwActiveProtocol,
                               this->pbAtr,
                               &dwAtrLen);
-    logger->log(__FILE__, __LINE__, "Successful pcsc intialization", LogLvl::INFO);
-    CHECK("SCardStatus", result);
+    
+    if (result != SCARD_S_SUCCESS) {
+        logger->log(__FILE__, __LINE__, "Cannot check card context", LogLvl::WARN);
+        return -1;
+    }
+    if (!(this->dwReaderState & SCARD_PRESENT)) {
+        logger->log(__FILE__, __LINE__, "Cannot find card", LogLvl::WARN);
+        return -1;
+    }
+    logger->log(__FILE__, __LINE__, "Card is in reader", LogLvl::DEBUG);
     return result;
 }
 

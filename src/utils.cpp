@@ -118,6 +118,7 @@ std::string getDG4() {
     int32_t errorDG1 = id_kta_get_dg4(ctx_eid, (const Data**)&DG4);
     if (errorDG1) {
         loggr->log(__FILE__, __LINE__, "Cannot get data groups", LogLvl::ERROR);
+        return "";
     } else {
         loggr->log(__FILE__, __LINE__, "Successful choosing EF", LogLvl::INFO);
         loggr->log(__FILE__, __LINE__, "Data groups received from card ", LogLvl::INFO);

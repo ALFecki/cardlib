@@ -109,8 +109,6 @@ int main() {
                 t.setAlignment(2, TextTable::Alignment::RIGHT);
                 std::cout << t;
                 break;
-                // CardSecure card = CardSecure();
-                // card.initSecure(bpace.getKey().data());
             }
             case 2: {
                 std::string password;
@@ -122,7 +120,7 @@ int main() {
                 }
                 Bpace bpace = Bpace(password, pwd_t::PIN);
                 if (!bpace.authorize()) {
-                    std::cout << "Error in authorization, try again.";
+                    std::cout << "Error in authorization, try again." << std::endl;
                     continue;
                 }
                 

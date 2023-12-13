@@ -6,13 +6,21 @@ Bpace::Bpace(std::string password, pwd_t pwd_type) : password(password), pwdType
     this->logger = Logger::getInstance();
     this->logger->setLogOutput("CONSOLE");
     this->logger->setLogLevel("INFO");
-
-    this->chooseApplеt(AID_KTA_APPLET, sizeof(AID_KTA_APPLET));
-
-    this->chooseMF();
 }
 
 int Bpace::bpaceInit() {
+    if (pcsc.initPCSC() != 0) {
+        logger->log(__FILE__, __LINE__, "Cannot create card context", LogLvl::ERROR);
+        return -1;
+    }
+
+    if (!this->chooseApplеt(AID_KTA_APPLET, sizeof(AID_KTA_APPLET))) {
+        return -1;
+    }
+
+    if (!this->chooseMF()) {
+        return -1;
+    }
     std::vector<octet> initBpace;
 
     auto encoded = derEncode(0x80, std::vector<octet>(OID_BPACE, OID_BPACE + sizeof(OID_BPACE)));
@@ -278,7 +286,7 @@ std::vector<octet> Bpace::getKey() {
 bool Bpace::authorize() {
     auto status = this->bPACEStart();
     if (status != ERR_OK) {
-        logger->log(__FILE__, __LINE__, "Unable to init BPACE: " + status, LogLvl::ERROR);
+        logger->log(__FILE__, __LINE__, "Unable to init BPACE", LogLvl::ERROR);
         if (this->blob != nullptr) {
             blobClose(this->blob);
             this->blob = nullptr;
