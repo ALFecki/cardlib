@@ -19,6 +19,7 @@ public:
     std::vector<octet> sendCommandToCard(std::vector<octet> cmd);
     std::shared_ptr<apdu_resp_t> decodeResponse(std::vector<octet> response);
 
+    void waitForCard();
     void dropContext();
 
 private:

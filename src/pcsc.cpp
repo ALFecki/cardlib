@@ -32,6 +32,7 @@ int PCSC::initPCSC() {
     }
 
     logger->log(__FILE__, __LINE__, "Reader name: " + std::string(this->mszReaders), LogLvl::INFO);
+    this->waitForCard();
 
     result = SCardConnect(this->hContext,
                           mszReaders,
@@ -53,8 +54,10 @@ int PCSC::initPCSC() {
             this->pioSendPci = *SCARD_PCI_T1;
             break;
     }
+    if (this->checkReaderStatus() != SCARD_S_SUCCESS) {
+        return -1;
+    }
 
-    this->checkReaderStatus();
     logger->log(__FILE__, __LINE__, "Successful card context initialization", LogLvl::INFO);
     return 0;
 }
@@ -68,7 +71,7 @@ int PCSC::checkReaderStatus() {
                               &this->dwActiveProtocol,
                               this->pbAtr,
                               &dwAtrLen);
-    
+
     if (result != SCARD_S_SUCCESS) {
         logger->log(__FILE__, __LINE__, "Cannot check card context", LogLvl::WARN);
         return -1;
@@ -99,6 +102,22 @@ std::shared_ptr<apdu_resp_t> PCSC::decodeResponse(std::vector<octet> response) {
     apduRespDec(resp, response.data(), response.size());
     std::shared_ptr<apdu_resp_t> apduResp(resp);
     return apduResp;
+}
+
+void PCSC::waitForCard() {
+    SCARD_READERSTATE rgReaderState[1];
+    rgReaderState[0].szReader = this->mszReaders;
+    rgReaderState[0].dwCurrentState = SCARD_STATE_UNAWARE;
+
+    LONG rv = SCardGetStatusChange(this->hContext, INFINITE, rgReaderState, 1);
+    
+    if (rgReaderState[0].dwEventState & SCARD_STATE_EMPTY) {
+        rgReaderState[0].dwCurrentState = rgReaderState[0].dwEventState;
+        rv = SCardGetStatusChange(this->hContext, INFINITE, rgReaderState, 1);
+        if (rv == SCARD_S_SUCCESS) {
+            logger->log(__FILE__, __LINE__, "Card is presented now", LogLvl::DEBUG);
+        }
+    }
 }
 
 void PCSC::dropContext() {

@@ -3,6 +3,8 @@
 #include <string.h>
 #include <vector>
 
+#include <pcsc.h>
+
 #include <cstdint>
 #include <iostream>
 

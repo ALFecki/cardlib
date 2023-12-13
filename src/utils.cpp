@@ -66,7 +66,7 @@ int init_pcsc() {
 bool initIdCard() {
     bool isConnected = false;
     int kta_err = 0;
-
+    
     if (init_pcsc() == 0) {
         isConnected = true;
     }
@@ -171,10 +171,8 @@ bool enterPin1ToIdCard(const std::string& pin) {
 
     if (ctx_eid == 0) {
         initIdCard();
-        isConnected = true;
-    } else {
-        isConnected = true;
     }
+    isConnected = true;
 
     if (isConnected) {
         int32_t err_pin_auth =
@@ -184,34 +182,8 @@ bool enterPin1ToIdCard(const std::string& pin) {
                                 (int32_t)EidAccess::DG4 | (int32_t)EidAccess::DG5,
                             EsignAccess::BasicMode,
                             2);
-
-        // qDebug() << err_pin_auth;
-        // switch (err_pin_auth) {
-        //     case 0x0:
-        //         break;
-        //     case 0x6983:
-        //         qDebug() << "Error: Пароль частично заблокирован";
-        //         close_idcard();
-        //         return false;
-        //     case 0x6985:
-        //         qDebug() << "Error: Пароль приостановлен";
-        //         close_idcard();
-        //         return false;
-        //     case 0x63C2:
-        //         qDebug() << "Error: Ошибка ПИН кода 1. Осталось 2 попытки";
-        //         close_idcard();
-        //         return false;
-        //     case 0x63C1:
-        //         qDebug() << "Error: Ошибка ПИН кода 1. Осталось 1 попытка";
-        //         close_idcard();
-        //         return false;
-        //     default:
-        //         qDebug() << "Error: Ошибка пинкода";
-        //         close_idcard();
-        //         return false;
-        // }
-        int32_t err_select_esign = id_kta_select_eid(ctx_eid);
-        if (err_select_esign != 0) {
+        int32_t err_select_eid = id_kta_select_eid(ctx_eid);
+        if (err_select_eid != 0) {
             return false;
         }
         return true;
