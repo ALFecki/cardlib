@@ -29,9 +29,9 @@ void CardSecure::initSecure(octet key0[32]) {
 
 
 boost::optional<APDU> CardSecure::APDUEncrypt(APDU command) {
-    
     ++this->counter;
-    std::vector<octet> iv(static_cast<octet*>(static_cast<void*>(&this->counter)), static_cast<octet*>(static_cast<void*>(&this->counter)) + 16);
+    auto counterArr = static_cast<octet*>(static_cast<void*>(&this->counter));
+    std::vector<octet> iv(counterArr, counterArr + 16);
     octet cla = static_cast<octet>(command.cla) | static_cast<octet>(Cla::Secure);
     std::vector<octet> header{cla, static_cast<octet>(command.instruction), command.p1, command.p2};
     std::vector<octet> y = std::vector<octet>(command.cdf_len, 0);
