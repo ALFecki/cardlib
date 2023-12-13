@@ -121,9 +121,8 @@ bool Bpace::chooseMF() {
     return true;
 }
 
-bool Bpace::chooseEF(std::pair<octet, octet> fid) {
-    auto card = CardSecure();
-    card.initSecure(this->k0);
+bool Bpace::chooseEF(CardSecure &card) {
+
     auto apdu = card.APDUEncrypt(APDU(Cla::Default, Instruction::ReadData, 0x01, 0x01, {}, 236));
     if (apdu == boost::none) {
         logger->log(__FILE__, __LINE__, "Error in choosing EF: cannot encrypt APDU", LogLevel::ERROR);
@@ -141,7 +140,10 @@ bool Bpace::chooseEF(std::pair<octet, octet> fid) {
 }
 
 std::string Bpace::getName() {
-    std::cout << chooseEF({0x01, 0x04});
+    auto card = CardSecure();
+    card.initSecure(this->k0);
+    std::cout << chooseEF(card);
+    std::cout << chooseEF(card);
     return "";
 }
 

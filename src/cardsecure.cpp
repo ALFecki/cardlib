@@ -2,7 +2,7 @@
 
 void CardSecure::initSecure(octet key0[32]) {
     this->logger = Logger::getInstance();
-
+    this->counter = 0;
     auto level = std::vector<octet>(12, 0x00);
     auto header = std::vector<octet>(16, 0xFF);
     octet* stack = new octet[beltKRP_keep()];
@@ -27,9 +27,11 @@ void CardSecure::initSecure(octet key0[32]) {
     logger->log(__FILE__, __LINE__, "Successful keys init" + err, LogLevel::INFO);
 }
 
+
 boost::optional<APDU> CardSecure::APDUEncrypt(APDU command) {
-    auto iv = std::vector<octet>(16, 0xFF);
-    // iv[15] = 0x01;
+    
+    ++this->counter;
+    std::vector<octet> iv(static_cast<octet*>(static_cast<void*>(&this->counter)), static_cast<octet*>(static_cast<void*>(&this->counter)) + 16);
     octet cla = static_cast<octet>(command.cla) | static_cast<octet>(Cla::Secure);
     std::vector<octet> header{cla, static_cast<octet>(command.instruction), command.p1, command.p2};
     std::vector<octet> y = std::vector<octet>(command.cdf_len, 0);

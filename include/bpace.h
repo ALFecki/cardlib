@@ -28,7 +28,7 @@ public:
     int bPACEStart(std::string password, Pwd pwd_type);
     bool chooseApplеt(const octet aid[], size_t aidSize);
     bool chooseMF();
-    bool chooseEF(std::pair<octet, octet> fid);
+    bool chooseEF(CardSecure &card);
 
     // temp
     std::string getName();
