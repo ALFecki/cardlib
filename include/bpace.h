@@ -26,7 +26,7 @@ public:
     int bPACEStart();
     bool chooseApplеt(const octet aid[], size_t aidSize);
     bool chooseMF();
-    bool chooseEF(std::pair<octet, octet> fid);
+    bool chooseEF(CardSecure &card);
 
     // temp
     std::string getName();
