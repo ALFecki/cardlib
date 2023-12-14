@@ -57,6 +57,7 @@ int Bpace::bpaceInit() {
     std::copy(helloa.begin(), helloa.end(), (char*)this->settings.helloa);
     this->settings.helloa_len = helloa.size();
     auto apdu = APDUEncode(APDU(Cla::Default, Instruction::BPACEInit, 0xC1, 0xA4, initBpace));
+    pcsc.waitForCard();
     auto resp = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
     if (resp->sw1 != 0x90 && resp->sw1 != 0x63) {
         logger->log(__FILE__, __LINE__, "Init BPACE failed", LogLvl::ERROR);
@@ -102,6 +103,7 @@ int Bpace::bPACEStart() {
 bool Bpace::chooseApplеt(const octet aid[], size_t aidSize) {
     std::vector<octet> aidVector(aid, aid + aidSize);
     auto apdu = APDUEncode(APDU(Cla::Default, Instruction::FilesSelect, 0x04, 0x0C, aidVector));
+    pcsc.waitForCard();
     auto res = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
     if (res->sw1 != 0x90) {
         logger->log(__FILE__, __LINE__, "Error in choosing applet", LogLvl::ERROR);
@@ -113,6 +115,7 @@ bool Bpace::chooseApplеt(const octet aid[], size_t aidSize) {
 
 bool Bpace::chooseMF() {
     auto apdu = APDUEncode(APDU(Cla::Default, Instruction::FilesSelect, 0x00, 0x00));
+    pcsc.waitForCard();
     auto res = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
     if (res->sw1 != 0x90 && res->sw2 != 0x00) {
         logger->log(__FILE__, __LINE__, "Error in choosing MF", LogLvl::ERROR);
@@ -143,14 +146,13 @@ bool Bpace::chooseEF(std::pair<octet, octet> fid) {
 
 std::string Bpace::getName() {
     pcsc.dropContext();
-    if (initIdCard()) {
-        enterCanToIdCard("334780");
-        auto DG = getDG3();
-        logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
-        return DG;
-    }
-    // std::cout << chooseEF({0x01, 0x04});
-    return "";
+    // if (initIdCard()) {
+    enterCanToIdCard(this->password);
+    auto DG = getDG3();
+    logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
+    return DG;
+    // }
+    // return "";
 }
 
 std::string Bpace::getBirthDate() {
@@ -161,7 +163,7 @@ std::string Bpace::getBirthDate() {
     logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
     return DG;
     // }
-    return "";
+    // return "";
 }
 
 std::string Bpace::getSex() {
@@ -172,19 +174,18 @@ std::string Bpace::getSex() {
     logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
     return DG;
     // }
-    return "";
+    // return "";
 }
 
 std::string Bpace::getIdentityNumber(std::string pin2) {
     pcsc.dropContext();
-    if (initIdCard()) {
-        enterPin1ToIdCard(this->password);
-        // enterPin2ToIdCard(pin2);
-        auto DG = getDG1();
-        logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
-        return DG;
-    }
-    return "";
+    // if (initIdCard()) {
+    enterPin1ToIdCard(this->password);
+    auto DG = getDG1();
+    logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
+    return DG;
+    // }
+    // return "";
 }
 
 std::vector<octet> Bpace::createMessage1() {
@@ -264,6 +265,7 @@ std::shared_ptr<apdu_resp_t> Bpace::sendM1() {
     if (message1.empty()) {
         return nullptr;
     }
+    pcsc.waitForCard();
     return pcsc.decodeResponse(pcsc.sendCommandToCard(message1));
 }
 
@@ -272,6 +274,7 @@ std::shared_ptr<apdu_resp_t> Bpace::sendM3(std::vector<octet> message2) {
     if (mess.empty()) {
         return nullptr;
     }
+    pcsc.waitForCard();
     return pcsc.decodeResponse(pcsc.sendCommandToCard(mess));
 }
 
@@ -330,7 +333,7 @@ bool Bpace::authorize() {
 
     if (resp->sw1 != 0x90) {
         logger->log(__FILE__, __LINE__, "Error in BPACE step 3", LogLvl::ERROR);
-        logger->log(__FILE__, __LINE__, "Invalid context", LogLvl::DEBUG);
+        logger->log(__FILE__, __LINE__, "Invalid password", LogLvl::DEBUG);
         return false;
     }
 
@@ -358,4 +361,8 @@ bool Bpace::authorize() {
     this->logger->log(__FILE__, __LINE__, "Successful authorization", LogLvl::INFO);
     this->logger->log(__FILE__, __LINE__, "Secured connection initialized", LogLvl::DEBUG);
     return true;
+}
+
+Bpace::~Bpace() {
+    dropCtx();
 }

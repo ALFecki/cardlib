@@ -44,6 +44,8 @@ public:
     std::vector<octet> getKey();
     void getKey(octet *key0);
 
+    ~Bpace();
+
 private:
     bign_params params{};
     octet echo[64]{};

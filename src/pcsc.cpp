@@ -113,6 +113,7 @@ void PCSC::waitForCard() {
     
     if (rgReaderState[0].dwEventState & SCARD_STATE_EMPTY) {
         rgReaderState[0].dwCurrentState = rgReaderState[0].dwEventState;
+        logger->log(__FILE__, __LINE__, "Waiting for card...", LogLvl::WARN);
         rv = SCardGetStatusChange(this->hContext, INFINITE, rgReaderState, 1);
         if (rv == SCARD_S_SUCCESS) {
             logger->log(__FILE__, __LINE__, "Card is presented now", LogLvl::DEBUG);
