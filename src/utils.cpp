@@ -66,7 +66,7 @@ int init_pcsc() {
 bool initIdCard() {
     bool isConnected = false;
     int kta_err = 0;
-    
+
     if (init_pcsc() == 0) {
         isConnected = true;
     }
@@ -147,7 +147,7 @@ std::string getDG5() {
 
 bool enterCanToIdCard(const std::string& can) {
     // if (ctx_eid == 0) {
-        initIdCard();
+    initIdCard();
     // }
     int32_t can_error =
         id_kta_can_auth(ctx_eid,
@@ -170,7 +170,7 @@ bool enterPin1ToIdCard(const std::string& pin) {
     bool isConnected = false;
 
     // if (ctx_eid == 0) {
-        initIdCard();
+    initIdCard();
     // }
     isConnected = true;
 
@@ -219,7 +219,6 @@ bool enterPin2ToIdCard(const std::string& pin) {
 
 void dropCtx() {
     if (ctx_eid != 0) {
-
         // id_kta_drop_ctx(ctx_eid);
         // ctx_eid = 0;
     }

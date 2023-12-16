@@ -78,3 +78,7 @@ boost::optional<APDU> CardSecure::APDUEncrypt(APDU command) {
     cdf.insert(cdf.end(), enc_t.begin(), enc_t.end());
     return APDU(static_cast<Cla>(cla), command.instruction, command.p1, command.p2, cdf);
 }
+
+boost::optional<APDU> CardSecure::APDUDecrypt(std::vector<octet> response) {
+    
+}
