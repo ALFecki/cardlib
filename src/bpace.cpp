@@ -125,8 +125,7 @@ bool Bpace::chooseMF() {
     return true;
 }
 
-bool Bpace::chooseEF(CardSecure &card) {
-
+bool Bpace::chooseEF(CardSecure& card) {
     auto apdu = card.APDUEncrypt(APDU(Cla::Default, Instruction::ReadData, 0x01, 0x01, {}, 236));
     if (apdu == boost::none) {
         logger->log(__FILE__, __LINE__, "Error in choosing EF: cannot encrypt APDU", LogLvl::ERROR);
@@ -143,48 +142,13 @@ bool Bpace::chooseEF(CardSecure &card) {
     return true;
 }
 
-std::string Bpace::getName() {
-    pcsc.dropContext();
-    // if (initIdCard()) {
-    enterCanToIdCard(this->password);
-    auto DG = getDG3();
-    logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
-    return DG;
-    // }
-    // return "";
-}
-
-std::string Bpace::getBirthDate() {
-    // pcsc.dropContext();
-    // if (initIdCard()) {
-    // enterCanToIdCard("334780");
-    auto DG = getDG4();
-    logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
-    return DG;
-    // }
-    // return "";
-}
-
-std::string Bpace::getSex() {
-    // pcsc.dropContext();
-    // if (initIdCard()) {
-    // enterCanToIdCard("334780");
-    auto DG = getDG5();
-    logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
-    return DG;
-    // }
-    // return "";
-}
-
-std::string Bpace::getIdentityNumber(std::string pin2) {
-    pcsc.dropContext();
-    // if (initIdCard()) {
-    enterPin1ToIdCard(this->password);
-    auto DG = getDG1();
-    logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
-    return DG;
-    // }
-    // return "";
+Json::Value Bpace::convertData(std::string key, std::vector<octet> data) {
+    auto decoded = derDecode(0xC, data.data(), data.size());
+    Json::Value root;
+    root.append(key);
+    root = std::string(decoded.data(), decoded.data() + decoded.size());
+    logger->log(__FILE__, __LINE__, "Successful decryption data groups", LogLvl::INFO);
+    return root;
 }
 
 std::vector<octet> Bpace::createMessage1() {
@@ -360,6 +324,34 @@ bool Bpace::authorize() {
     this->logger->log(__FILE__, __LINE__, "Successful authorization", LogLvl::INFO);
     this->logger->log(__FILE__, __LINE__, "Secured connection initialized", LogLvl::DEBUG);
     return true;
+}
+
+std::string Bpace::getName() {
+    pcsc.dropContext();
+    enterCanToIdCard(this->password);
+    auto DG = getDG3();
+    logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
+    return DG;
+}
+
+std::string Bpace::getBirthDate() {
+    auto DG = getDG4();
+    logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
+    return DG;
+}
+
+std::string Bpace::getSex() {
+    auto DG = getDG5();
+    logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
+    return DG;
+}
+
+std::string Bpace::getIdentityNumber(std::string pin2) {
+    pcsc.dropContext();
+    enterPin1ToIdCard(this->password);
+    auto DG = getDG1();
+    logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
+    return DG;
 }
 
 Bpace::~Bpace() {

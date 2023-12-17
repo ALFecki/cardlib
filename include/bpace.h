@@ -17,6 +17,7 @@
 #include <iterator>
 #include <span>
 #include <string>
+#include <json/json.h>
 
 class Bpace {
 public:
@@ -28,7 +29,6 @@ public:
     bool chooseMF();
     bool chooseEF(CardSecure &card);
 
-    // temp
     std::string getName();
     std::string getSex();
     std::string getBirthDate();
@@ -36,6 +36,8 @@ public:
 
     bool authorize();
 
+
+    Json::Value convertData(std::string key, std::vector<octet> data);
     std::vector<octet> createMessage1();
     std::vector<octet> createMessage3(std::vector<octet> message2);
     std::shared_ptr<apdu_resp_t> sendM1();

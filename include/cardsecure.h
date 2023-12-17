@@ -10,7 +10,7 @@ class CardSecure {
 public:
     void initSecure(octet key0[32]);
     boost::optional<APDU> APDUEncrypt(APDU command);
-    boost::optional<APDU> APDUDecrypt(std::vector<octet>);
+    boost::optional<std::vector<octet>> APDUDecrypt(std::shared_ptr<apdu_resp_t>);
 private:
     void* state;
 

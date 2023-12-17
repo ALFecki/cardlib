@@ -1,11 +1,5 @@
 #include <utils.h>
 
-#define CHECK(f, rv)             \
-    if (SCARD_S_SUCCESS != rv) { \
-        printf(f ": %ld\n", rv); \
-        return -1;               \
-    }
-
 SCARD_IO_REQUEST pioSendPci;
 SCARDCONTEXT hCtx;
 LPTSTR mszReader;
@@ -25,7 +19,6 @@ int32_t transmit(const void* ctx_data, const Data* data, Data* response) {
 
     response->len = len;
     memcpy(response->data, buf, len);
-    CHECK("SCardTransmit", rv);
     free(buf);
     return rv;
 }
@@ -34,14 +27,11 @@ int init_pcsc() {
     LONG rv;
 
     rv = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL, &hCtx);
-    CHECK("SCardEstablishContext", rv)
 
     rv = SCardListReaders(hCtx, NULL, NULL, &dwReader);
-    CHECK("SCardListReaders", rv)
 
     mszReader = static_cast<LPTSTR>(calloc(dwReader, sizeof(char)));
     rv = SCardListReaders(hCtx, NULL, mszReader, &dwReader);
-    CHECK("SCardListReaders", rv)
 
     rv = SCardConnect(hCtx,
                       mszReader,
@@ -49,7 +39,6 @@ int init_pcsc() {
                       SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
                       &hCardCtx,
                       &dwActiveProto);
-    CHECK("SCardConnect", rv)
 
     switch (dwActiveProto) {
         case SCARD_PROTOCOL_T0:

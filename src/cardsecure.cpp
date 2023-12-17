@@ -79,6 +79,13 @@ boost::optional<APDU> CardSecure::APDUEncrypt(APDU command) {
     return APDU(static_cast<Cla>(cla), command.instruction, command.p1, command.p2, cdf);
 }
 
-boost::optional<APDU> CardSecure::APDUDecrypt(std::vector<octet> response) {
-    
+boost::optional<std::vector<octet>> CardSecure::APDUDecrypt(std::shared_ptr<apdu_resp_t> response) {
+    ++this->counter;
+    auto counterArr = static_cast<octet*>(static_cast<void*>(&this->counter));
+    std::vector<octet> iv(counterArr, counterArr + 16);
+
+    std::vector<octet> data = derDecode(0x8E, response->rdf, response->rdf_len);
+    std::vector<octet> response_data;
+    beltCFBDecr(response_data.data(), data.data(), data.size(), this->key1, 32, iv.data());
+    return response_data;
 }
