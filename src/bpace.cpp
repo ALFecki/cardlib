@@ -57,7 +57,9 @@ int Bpace::bpaceInit() {
     std::copy(helloa.begin(), helloa.end(), (char*)this->settings.helloa);
     this->settings.helloa_len = helloa.size();
     auto apdu = APDUEncode(APDU(Cla::Default, Instruction::BPACEInit, 0xC1, 0xA4, initBpace));
-    pcsc.waitForCard();
+    if (pcsc.checkReaderStatus()) {
+        return -1;
+    }
     auto resp = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
     if (resp->sw1 != 0x90 && resp->sw1 != 0x63) {
         logger->log(__FILE__, __LINE__, "Init BPACE failed", LogLvl::ERROR);
@@ -103,7 +105,9 @@ int Bpace::bPACEStart() {
 bool Bpace::chooseApplеt(const octet aid[], size_t aidSize) {
     std::vector<octet> aidVector(aid, aid + aidSize);
     auto apdu = APDUEncode(APDU(Cla::Default, Instruction::FilesSelect, 0x04, 0x0C, aidVector));
-    pcsc.waitForCard();
+    if (pcsc.checkReaderStatus()) {
+        return false;
+    }
     auto res = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
     if (res->sw1 != 0x90) {
         logger->log(__FILE__, __LINE__, "Error in choosing applet", LogLvl::ERROR);
@@ -115,7 +119,9 @@ bool Bpace::chooseApplеt(const octet aid[], size_t aidSize) {
 
 bool Bpace::chooseMF() {
     auto apdu = APDUEncode(APDU(Cla::Default, Instruction::FilesSelect, 0x00, 0x00));
-    pcsc.waitForCard();
+    if (pcsc.checkReaderStatus()) {
+        return false;
+    }
     auto res = pcsc.decodeResponse(pcsc.sendCommandToCard(apdu));
     if (res->sw1 != 0x90 && res->sw2 != 0x00) {
         logger->log(__FILE__, __LINE__, "Error in choosing MF", LogLvl::ERROR);
@@ -133,6 +139,9 @@ bool Bpace::chooseEF(CardSecure& card) {
     }
     auto a = APDUEncode(apdu.get());
     a.push_back(0x00);
+    if (pcsc.checkReaderStatus()) {
+        return false;
+    }
     auto res = pcsc.decodeResponse(pcsc.sendCommandToCard(a));
     if (res->sw1 != 0x90 && res->sw2 != 0x00) {
         logger->log(__FILE__, __LINE__, "Error in choosing EF", LogLvl::ERROR);
@@ -228,7 +237,9 @@ std::shared_ptr<apdu_resp_t> Bpace::sendM1() {
     if (message1.empty()) {
         return nullptr;
     }
-    pcsc.waitForCard();
+    if (pcsc.checkReaderStatus()) {
+        return nullptr;
+    }
     return pcsc.decodeResponse(pcsc.sendCommandToCard(message1));
 }
 
@@ -237,7 +248,9 @@ std::shared_ptr<apdu_resp_t> Bpace::sendM3(std::vector<octet> message2) {
     if (mess.empty()) {
         return nullptr;
     }
-    pcsc.waitForCard();
+    if (pcsc.checkReaderStatus()) {
+        return nullptr;
+    }
     return pcsc.decodeResponse(pcsc.sendCommandToCard(mess));
 }
 
@@ -327,29 +340,45 @@ bool Bpace::authorize() {
 }
 
 std::string Bpace::getName() {
-    pcsc.dropContext();
+    init_pcsc(pcsc);
     enterCanToIdCard(this->password);
     auto DG = getDG3();
+    if (DG.empty()) {
+        logger->log(__FILE__, __LINE__, "Error with getting data group 3", LogLvl::ERROR);
+        return "";
+    }
     logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
     return DG;
 }
 
 std::string Bpace::getBirthDate() {
     auto DG = getDG4();
+    if (DG.empty()) {
+        logger->log(__FILE__, __LINE__, "Error with getting data group 4", LogLvl::ERROR);
+        return "";
+    }
     logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
     return DG;
 }
 
 std::string Bpace::getSex() {
     auto DG = getDG5();
+    if (DG.empty()) {
+        logger->log(__FILE__, __LINE__, "Error with getting data group 5", LogLvl::ERROR);
+        return "";
+    }
     logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
     return DG;
 }
 
 std::string Bpace::getIdentityNumber(std::string pin2) {
-    pcsc.dropContext();
+    init_pcsc(pcsc);
     enterPin1ToIdCard(this->password);
     auto DG = getDG1();
+    if (DG.empty()) {
+        logger->log(__FILE__, __LINE__, "Error with getting data group 1", LogLvl::ERROR);
+        return "";
+    }
     logger->log(__FILE__, __LINE__, DG, LogLvl::DEBUG);
     return DG;
 }

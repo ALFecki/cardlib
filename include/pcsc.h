@@ -22,7 +22,7 @@ public:
     void waitForCard();
     void dropContext();
 
-private:
+// private:
     SCARDCONTEXT hContext;
     LPTSTR mszReaders;
     DWORD dwReaders, dwActiveProtocol, dwReaderState;

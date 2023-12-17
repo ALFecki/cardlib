@@ -1,21 +1,23 @@
 #include <utils.h>
 
-SCARD_IO_REQUEST pioSendPci;
-SCARDCONTEXT hCtx;
-LPTSTR mszReader;
-DWORD dwReader, dwActiveProto;
-SCARDHANDLE hCardCtx;
+// SCARD_IO_REQUEST pioSendPci;
+// SCARDCONTEXT hCtx;
+// LPTSTR mszReader;
+// DWORD dwReader, dwActiveProto;
+// SCARDHANDLE hCardCtx;
+PCSC pcscCtx;
 IdCard* ctx_eid = 0;
 auto loggr = Logger::getInstance();
 
 int32_t transmit(const void* ctx_data, const Data* data, Data* response) {
     SCARDHANDLE hCard = *(SCARDHANDLE*)ctx_data;
-    pioSendPci = *SCARD_PCI_T1;
+    pcscCtx.pioSendPci = *SCARD_PCI_T1;
 
     unsigned long int len = 264;
     unsigned char* buf = (unsigned char*)malloc(len);
 
-    int32_t rv = SCardTransmit(hCard, &pioSendPci, data->data, data->len, NULL, (unsigned char*)buf, &len);
+    int32_t rv =
+        SCardTransmit(hCard, &pcscCtx.pioSendPci, data->data, data->len, NULL, (unsigned char*)buf, &len);
 
     response->len = len;
     memcpy(response->data, buf, len);
@@ -23,48 +25,23 @@ int32_t transmit(const void* ctx_data, const Data* data, Data* response) {
     return rv;
 }
 
-int init_pcsc() {
-    LONG rv;
-
-    rv = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL, &hCtx);
-
-    rv = SCardListReaders(hCtx, NULL, NULL, &dwReader);
-
-    mszReader = static_cast<LPTSTR>(calloc(dwReader, sizeof(char)));
-    rv = SCardListReaders(hCtx, NULL, mszReader, &dwReader);
-
-    rv = SCardConnect(hCtx,
-                      mszReader,
-                      SCARD_SHARE_SHARED,
-                      SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
-                      &hCardCtx,
-                      &dwActiveProto);
-
-    switch (dwActiveProto) {
-        case SCARD_PROTOCOL_T0:
-            pioSendPci = *SCARD_PCI_T0;
-            break;
-
-        case SCARD_PROTOCOL_T1:
-            pioSendPci = *SCARD_PCI_T1;
-            break;
-    }
-    return 0;
+int init_pcsc(PCSC pcsc) {
+    pcscCtx = pcsc;
 }
 
 bool initIdCard() {
-    bool isConnected = false;
     int kta_err = 0;
-
-    if (init_pcsc() == 0) {
-        isConnected = true;
-    }
     ctx_eid = (struct IdCard*)malloc(2048);
     CertificateCtx* pCertificateCtx;
 
     id_kta_create_cert_ctx((const CertificateCtx**)&pCertificateCtx);
-    kta_err = id_kta_init_raw(&hCardCtx, (const IdCard**)&ctx_eid, pCertificateCtx, transmit, LogLevel::Warn);
-    if (!isConnected or kta_err != 0) {
+    if (pcscCtx.checkReaderStatus()) {
+        return false;
+    }
+    
+    kta_err =
+        id_kta_init_raw(&pcscCtx.hCard, (const IdCard**)&ctx_eid, pCertificateCtx, transmit, LogLevel::Error);
+    if (kta_err != 0) {
         id_kta_drop_ctx(ctx_eid);
         return false;
     }
@@ -73,6 +50,9 @@ bool initIdCard() {
 
 std::string getDG1() {
     Data* DG1 = new Data;
+    if (pcscCtx.checkReaderStatus()) {
+        return "";
+    }
     int32_t errorDG1 = id_kta_get_dg1(ctx_eid, (const Data**)&DG1);
     if (errorDG1) {
         loggr->log(__FILE__, __LINE__, "Cannot get data groups", LogLvl::ERROR);
@@ -89,6 +69,9 @@ std::string getDG1() {
 
 std::string getDG3() {
     Data* DG3 = new Data;
+    if (pcscCtx.checkReaderStatus()) {
+        return "";
+    }
     int32_t errorDG1 = id_kta_get_dg3(ctx_eid, (const Data**)&DG3);
     if (errorDG1) {
         loggr->log(__FILE__, __LINE__, "Cannot get data groups", LogLvl::ERROR);
@@ -104,6 +87,9 @@ std::string getDG3() {
 
 std::string getDG4() {
     Data* DG4 = new Data;
+    if (pcscCtx.checkReaderStatus()) {
+        return "";
+    }
     int32_t errorDG1 = id_kta_get_dg4(ctx_eid, (const Data**)&DG4);
     if (errorDG1) {
         loggr->log(__FILE__, __LINE__, "Cannot get data groups", LogLvl::ERROR);
@@ -121,6 +107,9 @@ std::string getDG4() {
 
 std::string getDG5() {
     Data* DG5 = new Data;
+    if (pcscCtx.checkReaderStatus()) {
+        return "";
+    }
     int32_t errorDG1 = id_kta_get_dg5(ctx_eid, (const Data**)&DG5);
     if (errorDG1) {
         loggr->log(__FILE__, __LINE__, "Cannot get data groups", LogLvl::ERROR);
@@ -136,8 +125,13 @@ std::string getDG5() {
 
 bool enterCanToIdCard(const std::string& can) {
     // if (ctx_eid == 0) {
-    initIdCard();
+    if (!initIdCard()) {
+        return false;
+    }
     // }
+    if (pcscCtx.checkReaderStatus()) {
+        return false;
+    }
     int32_t can_error =
         id_kta_can_auth(ctx_eid,
                         can.c_str(),
@@ -159,11 +153,16 @@ bool enterPin1ToIdCard(const std::string& pin) {
     bool isConnected = false;
 
     // if (ctx_eid == 0) {
-    initIdCard();
+    if (!initIdCard()) {
+        return false;
+    }
     // }
     isConnected = true;
 
     if (isConnected) {
+        if (pcscCtx.checkReaderStatus()) {
+            return false;
+        }
         int32_t err_pin_auth =
             id_kta_pin_auth(ctx_eid,
                             pin.c_str(),
@@ -211,5 +210,5 @@ void dropCtx() {
         // id_kta_drop_ctx(ctx_eid);
         // ctx_eid = 0;
     }
-    SCardReleaseContext(hCtx);
+    SCardReleaseContext(pcscCtx.hContext);
 }

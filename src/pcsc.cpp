@@ -34,17 +34,6 @@ int PCSC::initPCSC() {
     logger->log(__FILE__, __LINE__, "Reader name: " + std::string(this->mszReaders), LogLvl::INFO);
     this->waitForCard();
 
-    result = SCardConnect(this->hContext,
-                          mszReaders,
-                          SCARD_SHARE_SHARED,
-                          SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
-                          &hCard,
-                          &dwActiveProtocol);
-    if (result != SCARD_S_SUCCESS) {
-        logger->log(__FILE__, __LINE__, "Cannot get card context", LogLvl::WARN);
-        return -1;
-    }
-
     switch (dwActiveProtocol) {
         case SCARD_PROTOCOL_T0:
             this->pioSendPci = *SCARD_PCI_T0;
@@ -74,10 +63,15 @@ int PCSC::checkReaderStatus() {
 
     if (result != SCARD_S_SUCCESS) {
         logger->log(__FILE__, __LINE__, "Cannot check card context", LogLvl::WARN);
+        this->dropContext();
         return -1;
     }
     if (!(this->dwReaderState & SCARD_PRESENT)) {
+        std::cout << "\033[2A";
+        std::cout << "\033[2K";
+        std::cout << "\033[2K";
         logger->log(__FILE__, __LINE__, "Cannot find card", LogLvl::WARN);
+        this->dropContext();
         return -1;
     }
     logger->log(__FILE__, __LINE__, "Card is in reader", LogLvl::DEBUG);
@@ -110,7 +104,7 @@ void PCSC::waitForCard() {
     rgReaderState[0].dwCurrentState = SCARD_STATE_UNAWARE;
 
     LONG rv = SCardGetStatusChange(this->hContext, INFINITE, rgReaderState, 1);
-    
+
     if (rgReaderState[0].dwEventState & SCARD_STATE_EMPTY) {
         rgReaderState[0].dwCurrentState = rgReaderState[0].dwEventState;
         logger->log(__FILE__, __LINE__, "Waiting for card...", LogLvl::WARN);
@@ -118,6 +112,16 @@ void PCSC::waitForCard() {
         if (rv == SCARD_S_SUCCESS) {
             logger->log(__FILE__, __LINE__, "Card is presented now", LogLvl::DEBUG);
         }
+    }
+    LONG result = SCardConnect(this->hContext,
+                               mszReaders,
+                               SCARD_SHARE_SHARED,
+                               SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
+                               &hCard,
+                               &dwActiveProtocol);
+    if (result != SCARD_S_SUCCESS) {
+        logger->log(__FILE__, __LINE__, "Cannot get card context", LogLvl::WARN);
+        return;
     }
 }
 

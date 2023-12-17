@@ -17,7 +17,7 @@ extern "C" {
 #endif
 
 int32_t transmit(const void* ctx_data, const Data* data, Data* response);
-int init_pcsc();
+int init_pcsc(PCSC pcsc);
 bool initIdCard();
 std::string getDG1();
 std::string getDG3();
