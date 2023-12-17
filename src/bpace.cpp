@@ -123,7 +123,8 @@ bool Bpace::chooseMF() {
 
 bool Bpace::chooseEF(CardSecure &card) {
 
-    auto apdu = card.APDUEncrypt(APDU(Cla::Default, Instruction::ReadData, 0x01, 0x01, {}, 236));
+    auto apdu = card.APDUEncrypt(APDU(Cla::Default, Instruction::FilesSelect, 0x04, 0x0C, {0x01, 0x01}));
+    // auto apdu = card.APDUEncrypt(APDU(Cla::Default, Instruction::ReadData, 0x01, 0x01, {}, 236));
     if (apdu == boost::none) {
         logger->log(__FILE__, __LINE__, "Error in choosing EF: cannot encrypt APDU", LogLevel::ERROR);
         return false;

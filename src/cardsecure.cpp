@@ -17,14 +17,21 @@ void CardSecure::initSecure(octet key0[32]) {
     //     return;
     // }
 
-    // header[15] = 0x02;
-    err_t err = beltKRP(this->key2, 0x20, key0, 0x20, level.data(), header.data());
+    header[15] = 0x00;
+    header[14] = 0x00;
+    header[13] = 0x00;
+    header[12] = 0x00;
+    stack = new octet[beltKRP_keep()];
+    this->state = (void*)stack;
+    beltKRPStart(this->state, key0, 32, level.data());
+    beltKRPStepG(this->key2, 32, header.data(), this->state);
+    // err_t err = beltKRP(this->key2, 0x20, key0, 0x20, level.data(), header.data());
 
-    if (err != ERR_OK) {
-        logger->log(__FILE__, __LINE__, "Getting key2 error: " + err, LogLevel::ERROR);
-        return;
-    }
-    logger->log(__FILE__, __LINE__, "Successful keys init" + err, LogLevel::INFO);
+    // if (err != ERR_OK) {
+    //     logger->log(__FILE__, __LINE__, "Getting key2 error: " + err, LogLevel::ERROR);
+    //     return;
+    // }
+    logger->log(__FILE__, __LINE__, "Successful keys init", LogLevel::INFO);
 }
 
 
@@ -34,14 +41,18 @@ boost::optional<APDU> CardSecure::APDUEncrypt(APDU command) {
     std::vector<octet> iv(counterArr, counterArr + 16);
     octet cla = static_cast<octet>(command.cla) | static_cast<octet>(Cla::Secure);
     std::vector<octet> header{cla, static_cast<octet>(command.instruction), command.p1, command.p2};
-    std::vector<octet> y = std::vector<octet>(command.cdf_len, 0);
+    std::vector<octet> y = std::vector<octet>(command.cdf);
 
     if (!command.cdf.empty()) {
-        err_t err = beltCFBEncr(y.data(), command.cdf.data(), command.cdf_len, this->key2, 32, iv.data());
-        if (err != ERR_OK) {
-            logger->log(__FILE__, __LINE__, "CFB encryption error: " + err, LogLevel::ERROR);
-            return boost::none;
-        }
+        octet* stack = new octet[beltCFB_keep()];
+        this->state = (void*)stack;
+        beltCFBStart(this->state, this->key1, 32, iv.data());
+        beltCFBStepE(y.data(), y.size(), this->state);
+        // err_t err = beltCFBEncr(y.data(), command.cdf.data(), command.cdf_len, this->key2, 32, iv.data());
+        // if (err != ERR_OK) {
+        //     logger->log(__FILE__, __LINE__, "CFB encryption error: " + err, LogLevel::ERROR);
+        //     return boost::none;
+        // }
     }
     auto z = std::vector<octet>();
     
