@@ -3,6 +3,7 @@
 #include <bee2/defs.h>
 #include <enums/apduEnum.h>
 #include <logger.h>
+#include <btok.h>
 
 #include <vector>
 
