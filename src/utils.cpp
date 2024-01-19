@@ -1,13 +1,9 @@
 #include <utils.h>
 
-// SCARD_IO_REQUEST pioSendPci;
-// SCARDCONTEXT hCtx;
-// LPTSTR mszReader;
-// DWORD dwReader, dwActiveProto;
-// SCARDHANDLE hCardCtx;
 PCSC pcscCtx;
 IdCard* ctx_eid = 0;
 auto loggr = Logger::getInstance();
+void remove();
 
 int32_t transmit(const void* ctx_data, const Data* data, Data* response) {
     SCARDHANDLE hCard = *(SCARDHANDLE*)ctx_data;
@@ -38,10 +34,11 @@ bool initIdCard() {
     if (pcscCtx.checkReaderStatus()) {
         return false;
     }
-    
+
     kta_err =
         id_kta_init_raw(&pcscCtx.hCard, (const IdCard**)&ctx_eid, pCertificateCtx, transmit, LogLevel::Error);
     if (kta_err != 0) {
+        remove();
         id_kta_drop_ctx(ctx_eid);
         return false;
     }
@@ -55,7 +52,9 @@ std::string getDG1() {
     }
     int32_t errorDG1 = id_kta_get_dg1(ctx_eid, (const Data**)&DG1);
     if (errorDG1) {
+        remove();
         loggr->log(__FILE__, __LINE__, "Cannot get data groups", LogLvl::ERROR);
+        return "";
     } else {
         loggr->log(__FILE__, __LINE__, "Successful choosing EF", LogLvl::INFO);
         loggr->log(__FILE__, __LINE__, "Data groups received from card ", LogLvl::INFO);
@@ -74,6 +73,7 @@ std::string getDG3() {
     }
     int32_t errorDG1 = id_kta_get_dg3(ctx_eid, (const Data**)&DG3);
     if (errorDG1) {
+        remove();
         loggr->log(__FILE__, __LINE__, "Cannot get data groups", LogLvl::ERROR);
     } else {
         loggr->log(__FILE__, __LINE__, "Successful choosing EF", LogLvl::INFO);
@@ -92,6 +92,7 @@ std::string getDG4() {
     }
     int32_t errorDG1 = id_kta_get_dg4(ctx_eid, (const Data**)&DG4);
     if (errorDG1) {
+        remove();
         loggr->log(__FILE__, __LINE__, "Cannot get data groups", LogLvl::ERROR);
         return "";
     } else {
@@ -112,6 +113,7 @@ std::string getDG5() {
     }
     int32_t errorDG1 = id_kta_get_dg5(ctx_eid, (const Data**)&DG5);
     if (errorDG1) {
+        remove();
         loggr->log(__FILE__, __LINE__, "Cannot get data groups", LogLvl::ERROR);
     } else {
         loggr->log(__FILE__, __LINE__, "Successful choosing EF", LogLvl::INFO);
@@ -124,11 +126,9 @@ std::string getDG5() {
 }
 
 bool enterCanToIdCard(const std::string& can) {
-    // if (ctx_eid == 0) {
     if (!initIdCard()) {
         return false;
     }
-    // }
     if (pcscCtx.checkReaderStatus()) {
         return false;
     }
@@ -139,11 +139,13 @@ bool enterCanToIdCard(const std::string& can) {
                             (int32_t)EidAccess::DG4 | (int32_t)EidAccess::DG5);
 
     if (can_error) {
+        remove();
         return false;
     }
 
     int32_t error = id_kta_select_eid(ctx_eid);
     if (error != 0) {
+        remove();
         return false;
     }
     return true;
@@ -152,11 +154,10 @@ bool enterCanToIdCard(const std::string& can) {
 bool enterPin1ToIdCard(const std::string& pin) {
     bool isConnected = false;
 
-    // if (ctx_eid == 0) {
     if (!initIdCard()) {
         return false;
     }
-    // }
+
     isConnected = true;
 
     if (isConnected) {
@@ -170,8 +171,13 @@ bool enterPin1ToIdCard(const std::string& pin) {
                                 (int32_t)EidAccess::DG4 | (int32_t)EidAccess::DG5,
                             EsignAccess::BasicMode,
                             2);
+        if (err_pin_auth) {
+            remove();
+            return false;
+        }
         int32_t err_select_eid = id_kta_select_eid(ctx_eid);
         if (err_select_eid != 0) {
+            remove();
             return false;
         }
         return true;
@@ -211,4 +217,10 @@ void dropCtx() {
         // ctx_eid = 0;
     }
     SCardReleaseContext(pcscCtx.hContext);
+}
+
+void remove() {
+    std::cout << "\033[2A";
+    std::cout << "\033[2K";
+    std::cout << "\033[2K";
 }
